@@ -152,6 +152,17 @@ fn utils_diver_function()
 
 #[test]
 fn computer_vs_computer() {
+    use std::env;
+    let mut sleep_duration = Duration::default();
+
+    // Detect command line arguments after -- e.g. cargo test -- --nocapture
+    // Here --nocapture will be detected and thus a delay will be inserted so
+    // we can see the computer playing the game with itself as opponent
+    let args: Vec<String> = env::args().collect();
+    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("--nocapture")) {
+        sleep_duration = Duration::new(1,0);
+    }
+
     /* Instant blocker */
     let mut test_board = Board {
         positions : [[Piece::None,Piece::None,Piece::None],
@@ -163,7 +174,6 @@ fn computer_vs_computer() {
     let mut done : bool;
     let mut winner : Piece;
     use std::time::Duration;
-    let sleep_duration = Duration::new(1,0);
     loop {
         done = get_next_move(&mut test_board);
         winner = check_status(&test_board);
