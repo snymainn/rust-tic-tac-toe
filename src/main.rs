@@ -40,12 +40,6 @@ fn main() {
     
     println!("Selected player {}", my_piece.get_piece());
 
-    let start: u8 = rand::thread_rng().gen_range(1..=2);
-    match start {
-        1 => println!("Computer starts!"),
-        _ => println!("You start!"),
-    }
-
     let mut start_board = Board {
         positions : [[Piece::None,Piece::None,Piece::None],
                     [Piece::None,Piece::None,Piece::None],
@@ -56,17 +50,27 @@ fn main() {
     let mut done = false;
     let mut winner: Piece = Piece::None;
 
-    start_board.display_board(done, &winner);
-
+    let start: u8 = rand::thread_rng().gen_range(1..=2);
+    match start {
+        1 => println!("Computer starts!"),
+        _ => {
+            println!("You start!");
+            start_board.display_board(done, &winner);
+            let position: Position = get_input(&start_board);
+            println!("Got position : {},{}", position.row, position.col);
+            start_board.positions[position.row-1][position.col-1] = my_piece.clone(); // Needs clone due to iteration
+        },
+    }
+    
     loop {
-        let position: Position = get_input(&start_board);
-        println!("Got position : {},{}", position.row, position.col);
-        start_board.positions[position.row-1][position.col-1] = my_piece.clone(); // Needs clone due to iteration
-        start_board.display_board(done, &winner);
         done = get_next_move(&mut start_board);
         winner = check_status(&start_board);
         start_board.display_board(done, &winner);
         if done || matches!(winner, Piece::O | Piece::X) { break };
+        let position: Position = get_input(&start_board);
+        println!("Got position : {},{}", position.row, position.col);
+        start_board.positions[position.row-1][position.col-1] = my_piece.clone(); // Needs clone due to iteration
+        start_board.display_board(done, &winner);
     }   
 }
 
