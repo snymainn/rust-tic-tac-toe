@@ -196,9 +196,9 @@ fn back_prop_function() {
         1, 0, 0, 0, 0, 1,
         1, 0, 0, 0, 0, 1];
 
-    let _a_output: Vec<i8> = vec![1, 0, 0];
+    let a_output: Vec<i8> = vec![1, 0, 0];
 
-    let a_input_length = back_prop(a_input);
+    let result = back_prop(a_input, a_output);
 
-    assert_eq!(a_input_length, 30, "Returned value from back_prop is not equal to {}", 30);
+    assert_eq!(result, 1f32/(1f32 + (-2f32).exp()));
 }
