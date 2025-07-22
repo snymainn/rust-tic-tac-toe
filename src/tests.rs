@@ -184,4 +184,21 @@ fn computer_vs_computer() {
     } 
     assert!(matches!(winner, Piece::None)); // No winners
 }
- 
+
+#[test]
+#[ignore = "wip"] // use -- --ignored to cargo test to run this test
+fn back_prop_function() {
+
+    let a_input: Vec<i8> = vec![
+        0, 0, 1, 1, 0, 0, 
+        0, 1, 0, 0, 1, 0,
+        1, 1, 1, 1, 1, 1,
+        1, 0, 0, 0, 0, 1,
+        1, 0, 0, 0, 0, 1];
+
+    let _a_output: Vec<i8> = vec![1, 0, 0];
+
+    let a_input_length = back_prop(a_input);
+
+    assert_eq!(a_input_length, 30, "Returned value from back_prop is not equal to {}", 30);
+}

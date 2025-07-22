@@ -159,3 +159,14 @@ pub fn check_blocker(board: &Board, y: usize, x: usize) -> bool {
     }
     return false; 
 }
+
+/*
+    Back propagate the difference between input and output
+    through a network back to the weights
+    Return:
+            Modified weigth matrixes
+*/
+#[allow(dead_code)]
+pub fn back_prop(input: Vec<i8>) -> usize {
+    return input.len();
+}
