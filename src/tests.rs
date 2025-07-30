@@ -1,3 +1,5 @@
+use approx::assert_abs_diff_eq;
+
 #[cfg(test)]
 use super::*;
 
@@ -188,17 +190,15 @@ fn computer_vs_computer() {
 #[test]
 #[ignore = "wip"] // use -- --ignored to cargo test to run this test
 fn back_prop_function() {
+    use crate::neural_utils::*;   
+    use crate::neural_data::*; 
 
-    let a_input: Vec<i8> = vec![
-        0, 0, 1, 1, 0, 0, 
-        0, 1, 0, 0, 1, 0,
-        1, 1, 1, 1, 1, 1,
-        1, 0, 0, 0, 0, 1,
-        1, 0, 0, 0, 0, 1];
+    let mut result_vector: Vec<f64> = Vec::new();
 
-    let a_output: Vec<i8> = vec![1, 0, 0];
+    back_prop(A_INPUT, A_OUTPUT, W1, &mut result_vector);
 
-    let result = back_prop(a_input, a_output);
-
-    assert_eq!(result, 1f32/(1f32 + (-2f32).exp()));
+    let a1: Vec<f64> = vec![7.05569120e-04, 5.55767014e-01, 9.92163534e-01, 2.29223666e-01, 
+    9.33286195e-01];
+    
+    assert_abs_diff_eq!(&result_vector[..], &a1[..], epsilon=0.00000001);
 }

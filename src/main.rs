@@ -1,11 +1,15 @@
+// The mod statements declares the files used in this project
 mod data;
 mod utils;
+mod neural_utils;
+mod neural_data;
 
 mod tests;
 
 use std::io;
 use rand::Rng;
 
+// Imports the elements so shorter names can be used
 use crate::data::*;
 use crate::utils::*;
 
