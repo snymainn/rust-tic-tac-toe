@@ -195,10 +195,12 @@ fn back_prop_function() {
 
     let mut result_vector: Vec<f64> = Vec::new();
 
-    back_prop(A_INPUT, A_OUTPUT, W1, &mut result_vector);
+    back_prop(A_INPUT, A_OUTPUT, W1, W2, &mut result_vector);
 
-    let a1: Vec<f64> = vec![7.05569120e-04, 5.55767014e-01, 9.92163534e-01, 2.29223666e-01, 
-    9.33286195e-01];
+    //let a1: Vec<f64> = vec![7.05569120e-04, 5.55767014e-01, 9.92163534e-01, 2.29223666e-01, 
+    //9.33286195e-01];
     
-    assert_abs_diff_eq!(&result_vector[..], &a1[..], epsilon=0.00000001);
+    let a2: Vec<f64> =  vec![0.23977744, 0.04126343, 0.34339637];
+
+    assert_abs_diff_eq!(&result_vector[..], &a2[..], epsilon=0.00000001);
 }
