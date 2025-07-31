@@ -1,5 +1,3 @@
-use approx::assert_abs_diff_eq;
-
 #[cfg(test)]
 use super::*;
 
@@ -192,15 +190,36 @@ fn computer_vs_computer() {
 fn back_prop_function() {
     use crate::neural_utils::*;   
     use crate::neural_data::*; 
+    use approx::assert_abs_diff_eq;
 
-    let mut result_vector: Vec<f64> = Vec::new();
-
-    back_prop(A_INPUT, A_OUTPUT, W1, W2, &mut result_vector);
+    let mut result_vector: Vec<Vec<f64>> = Vec::new();
+    // Create a mutable version of the original random weight matrixes
+    let mut w1: Vec<Vec<f64>> = W1.iter().map(|row_ref| row_ref.to_vec()).collect();
+    let mut w2: Vec<Vec<f64>> = W2.iter().map(|row_ref| row_ref.to_vec()).collect();
+    // Create a shadow variable pointing to the mutable version of the matrixes
+    // where the number of rows is not changeable, but the rows themselves are slices that
+    // point to memory that can be modified
+    let mut w1: Vec<&mut [f64]> = w1.iter_mut().map(|r| r.as_mut_slice()).collect();
+    let mut w2: Vec<&mut [f64]> = w2.iter_mut().map(|r| r.as_mut_slice()).collect();
+    
+    back_prop(A_INPUT, A_OUTPUT, &mut w1, &mut w2, 0.1, &mut result_vector);
 
     //let a1: Vec<f64> = vec![7.05569120e-04, 5.55767014e-01, 9.92163534e-01, 2.29223666e-01, 
     //9.33286195e-01];
     
-    let a2: Vec<f64> =  vec![0.23977744, 0.04126343, 0.34339637];
+    //let a2: Vec<f64> =  vec![0.23977744, 0.04126343, 0.34339637];
+    //let d2: Vec<f64> = vec![-0.76022256, 0.04126343, 0.34339637];
 
-    assert_abs_diff_eq!(&result_vector[..], &a2[..], epsilon=0.00000001);
-}
+    //let w2_d2_dot: Vec<f64> = vec![-1.43677719, -0.14652509, 0.03230183, 0.67195622, 0.45131248];
+
+    //let d1: Vec<f64> = vec![-0.00101303, -0.03617558, 0.00025115, 0.11872134, 0.0281001];
+
+    for (index, result_row) in w1.iter().enumerate() {
+        assert_abs_diff_eq!(&result_row[..], &W1_BACK_PROP_1[index][..], epsilon=0.0001);
+    }
+
+    for (index, result_row) in w2.iter().enumerate() {
+        assert_abs_diff_eq!(&result_row[..], &W2_BACK_PROP_1[index][..], epsilon=0.0001);
+    }
+
+}    
