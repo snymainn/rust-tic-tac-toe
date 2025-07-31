@@ -4,7 +4,7 @@ pub struct Position {
     pub col: usize,
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq)]
 pub enum Piece { None, X, O}
 
 impl Piece {
@@ -51,5 +51,8 @@ impl Board {
             }
         }
         println!("Score {}\n", self.score);
+    }
+    pub fn full(&self) -> bool {
+        self.positions.iter().flatten().find(|&x| *x == Piece::None).is_none()
     }
 }

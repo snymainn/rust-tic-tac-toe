@@ -17,6 +17,27 @@ fn data_enum_piece_function_return_correct() {
 }
 
 #[test]
+fn full_function()
+{
+
+    let mut test_board = Board {
+        positions : [[Piece::None,Piece::None,Piece::None],
+                    [Piece::X,Piece::X,Piece::X],
+                    [Piece::None,Piece::None,Piece::None]],
+        score : 0,
+        current_piece : Piece::None,
+    };
+
+    assert_eq!(test_board.full(), false);
+
+    test_board.positions = [[Piece::X,Piece::X,Piece::X],
+                            [Piece::X,Piece::O,Piece::O],
+                            [Piece::O,Piece::X,Piece::O]];
+    
+    assert_eq!(test_board.full(), true);
+}
+
+#[test]
 fn utils_check_status_function()
 {
     /*
@@ -175,8 +196,9 @@ fn computer_vs_computer() {
     let mut winner : Piece;
     use std::time::Duration;
     loop {
-        done = get_next_move(&mut test_board);
+        get_next_move(&mut test_board);
         winner = check_status(&test_board);
+        done = test_board.full();
         test_board.display_board(done, &winner);
         if done || matches!(winner, Piece::O | Piece::X) { break };
         test_board.current_piece = test_board.current_piece.get_other_piece();

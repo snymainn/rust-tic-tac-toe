@@ -67,8 +67,9 @@ fn main() {
     }
     
     loop {
-        done = get_next_move(&mut start_board);
+        get_next_move(&mut start_board);
         winner = check_status(&start_board);
+        done = start_board.full();
         start_board.display_board(done, &winner);
         if done || matches!(winner, Piece::O | Piece::X) { break };
         let position: Position = get_input(&start_board);

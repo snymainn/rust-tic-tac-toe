@@ -78,7 +78,7 @@ pub fn dive(board: &Board, piece: &Piece, y: usize, x: usize, in_level: i32) -> 
             false : not done, more space available
             true : done, not more space on board
  */
-pub fn get_next_move(board: &mut Board) -> bool {
+pub fn get_next_move(board: &mut Board) {
     let mut made_new_moves = false;
 
     let mut top_score_y = 0;
@@ -103,7 +103,6 @@ pub fn get_next_move(board: &mut Board) -> bool {
     if made_new_moves {
         board.positions[top_score_y][top_score_x] = board.current_piece.clone();
     }
-    return made_new_moves == false;
 }
 
 /*
