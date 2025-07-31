@@ -39,8 +39,7 @@ fn scalar_dot_product(input_vector: &[f64], weigth_vector: &[f64]) -> f64 {
             Modified weigth matrixes w1 and w2
 */
 #[cfg_attr(not(test), allow(dead_code))]
-pub fn back_prop(input: &[i8], output: &[i8], w1: &mut [&mut [f64]], w2: &mut [&mut [f64]], alpha: f64, 
-    temp: &mut Vec<Vec<f64>>) {
+pub fn back_prop(input: &[i8], output: &[i8], w1: &mut [&mut [f64]], w2: &mut [&mut [f64]], alpha: f64) {
 
     // Tranform the input vector from i8 to f64
     let input_f64: Vec<f64> = input.iter().map(|&number| number as f64).collect();

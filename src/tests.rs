@@ -202,17 +202,7 @@ fn back_prop_function() {
     let mut w1: Vec<&mut [f64]> = w1.iter_mut().map(|r| r.as_mut_slice()).collect();
     let mut w2: Vec<&mut [f64]> = w2.iter_mut().map(|r| r.as_mut_slice()).collect();
     
-    back_prop(A_INPUT, A_OUTPUT, &mut w1, &mut w2, 0.1, &mut result_vector);
-
-    //let a1: Vec<f64> = vec![7.05569120e-04, 5.55767014e-01, 9.92163534e-01, 2.29223666e-01, 
-    //9.33286195e-01];
-    
-    //let a2: Vec<f64> =  vec![0.23977744, 0.04126343, 0.34339637];
-    //let d2: Vec<f64> = vec![-0.76022256, 0.04126343, 0.34339637];
-
-    //let w2_d2_dot: Vec<f64> = vec![-1.43677719, -0.14652509, 0.03230183, 0.67195622, 0.45131248];
-
-    //let d1: Vec<f64> = vec![-0.00101303, -0.03617558, 0.00025115, 0.11872134, 0.0281001];
+    back_prop(A_INPUT, A_OUTPUT, &mut w1, &mut w2, 0.1);
 
     for (index, result_row) in w1.iter().enumerate() {
         assert_abs_diff_eq!(&result_row[..], &W1_BACK_PROP_1[index][..], epsilon=0.0001);
