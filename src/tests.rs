@@ -186,13 +186,14 @@ fn computer_vs_computer() {
 }
 
 #[test]
-#[ignore = "wip"] // use -- --ignored to cargo test to run this test
-fn back_prop_function() {
+//#[ignore = "wip"] // use -- --ignored to cargo test to run this test
+fn neural_functions() {
     use crate::neural_utils::*;   
     use crate::neural_data::*; 
     use approx::assert_abs_diff_eq;
+    
+    let alpha = 0.1;
 
-    let mut result_vector: Vec<Vec<f64>> = Vec::new();
     // Create a mutable version of the original random weight matrixes
     let mut w1: Vec<Vec<f64>> = W1.iter().map(|row_ref| row_ref.to_vec()).collect();
     let mut w2: Vec<Vec<f64>> = W2.iter().map(|row_ref| row_ref.to_vec()).collect();
@@ -202,7 +203,7 @@ fn back_prop_function() {
     let mut w1: Vec<&mut [f64]> = w1.iter_mut().map(|r| r.as_mut_slice()).collect();
     let mut w2: Vec<&mut [f64]> = w2.iter_mut().map(|r| r.as_mut_slice()).collect();
     
-    back_prop(A_INPUT, A_OUTPUT, &mut w1, &mut w2, 0.1);
+    back_prop(A_INPUT, A_OUTPUT, &mut w1, &mut w2, alpha);
 
     for (index, result_row) in w1.iter().enumerate() {
         assert_abs_diff_eq!(&result_row[..], &W1_BACK_PROP_1[index][..], epsilon=0.0001);
@@ -212,4 +213,44 @@ fn back_prop_function() {
         assert_abs_diff_eq!(&result_row[..], &W2_BACK_PROP_1[index][..], epsilon=0.0001);
     }
 
+    back_prop(B_INPUT, B_OUTPUT, &mut w1, &mut w2, alpha);
+    back_prop(C_INPUT, C_OUTPUT, &mut w1, &mut w2, alpha);
+
+    for _ in 0..100 {
+        back_prop(A_INPUT, A_OUTPUT, &mut w1, &mut w2, alpha);
+        back_prop(B_INPUT, B_OUTPUT, &mut w1, &mut w2, alpha);
+        back_prop(C_INPUT, C_OUTPUT, &mut w1, &mut w2, alpha); 
+    }
+
+    let mut out;
+    let mut losss;
+    let mut pos;
+
+    out = forward(A_INPUT, &w1, &w2);
+    losss = loss(A_OUTPUT, &out);
+    assert_abs_diff_eq!(losss, 0.007450141319513159, epsilon=1e-10);
+    pos = find_largest_index(&out);
+    assert!(pos == 0, "Failed to guess A");
+    println!("Guessed {}", A_B_C[pos]);
+    
+    out = forward(B_INPUT, &w1, &w2);
+    losss = loss(B_OUTPUT, &out);
+    assert_abs_diff_eq!(losss, 0.008544915933039758, epsilon=1e-10);
+    pos = find_largest_index(&out);
+    assert!(pos == 1, "Failed to guess B");
+    println!("Guessed {}", A_B_C[pos]);
+
+    out = forward(C_INPUT, &w1, &w2);
+    losss = loss(C_OUTPUT, &out);
+    assert_abs_diff_eq!(losss, 0.010083027388383743, epsilon=1e-10);
+    pos = find_largest_index(&out);
+    assert!(pos == 2, "Failed to guess C");
+    println!("Guessed {}", A_B_C[pos]);
+
+    out = forward(A_ERROR, &w1, &w2);
+    losss = loss(A_OUTPUT, &out);
+    assert_abs_diff_eq!(losss, 0.01035458738888999, epsilon=1e-10);
+    pos = find_largest_index(&out);
+    assert!(pos == 0, "Failed to guess A");
+    println!("Guessed {}", A_B_C[pos]);
 }    

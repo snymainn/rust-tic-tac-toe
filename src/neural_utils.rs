@@ -1,3 +1,5 @@
+use std::process::exit;
+
 
 /*
     Transform any scalar value to something between 0 and 1
@@ -29,6 +31,54 @@ fn scalar_dot_product(input_vector: &[f64], weigth_vector: &[f64]) -> f64 {
         sum += *a * *b
     }
     sum
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+pub fn loss(output: &[i8], guess: &[f64]) -> f64 {
+    assert_eq!(output.len(), guess.len(), "Vectors must have the same length in loss calculation.");
+
+    let mut losss = 0.0;
+
+    for (a, b) in output.iter().zip(guess.iter()) {
+        losss += ((*a as f64) - *b).powf(2f64);
+    }
+    losss/(output.len() as f64)
+}
+
+/*
+    Forward input data through neural network and create predicted output vector
+    
+    Return:
+            Predicted output vector
+*/
+#[cfg_attr(not(test), allow(dead_code))]
+pub fn forward(input: &[i8], w1: &[&mut [f64]], w2: &[&mut [f64]]) -> Vec<f64> {
+
+    // Tranform the input vector from i8 to f64
+    let input_f64: Vec<f64> = input.iter().map(|&number| number as f64).collect();
+
+    // Scalar dot product of input vector and weigth matrix to create hidden node layer
+    let columns = w1[0].len();
+    let mut z1: Vec<f64> = Vec::new();
+    for col_index in 0..columns {
+        // This is a workaround necessary because the python original code 
+        // arranged the weigth matrix in one row for containing weigths for all output nodes
+        // instead of all weights for one input node
+        let synapse_column: Vec<f64>  = w1.iter().map(|row|row[col_index]).collect();
+        z1.push(scalar_dot_product(&input_f64, &synapse_column));
+    }
+    sigmoid(&mut z1);
+
+    // Scalar dot product of hidden node layer and output weigth matrix to create estimated 
+    // output vector
+    let columns = w2[0].len();  // Number of columns, i.e. output nodes
+    let mut z2: Vec<f64> = Vec::new();
+    for col_index in 0..columns {
+        let synapse_column: Vec<f64>  = w2.iter().map(|row|row[col_index]).collect();
+        z2.push(scalar_dot_product(&z1, &synapse_column));
+    }
+    sigmoid(&mut z2);
+    z2
 }
 
 /*
@@ -120,4 +170,21 @@ pub fn back_prop(input: &[i8], output: &[i8], w1: &mut [&mut [f64]], w2: &mut [&
     //dbg!(w1_adj);
 }
 
+/*
+    Return element index of with largest value in array
+*/
+#[cfg_attr(not(test), allow(dead_code))]
+pub fn find_largest_index(guess: &[f64]) -> usize {
+    let pos: Option<(usize, &f64)> = guess.iter().enumerate().
+        max_by(|(_,a), (_,b)| a.partial_cmp(b).unwrap());
 
+    match pos {
+        Some((index, _)) => {
+            return index as usize;
+        }
+        None => {
+            println!("Empty guessed output vector, exiting!");
+            exit(1);
+        }
+    }
+}
