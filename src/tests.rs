@@ -25,7 +25,7 @@ fn full_function()
                     [Piece::X,Piece::X,Piece::X],
                     [Piece::None,Piece::None,Piece::None]],
         score : 0,
-        current_piece : Piece::None,
+        computer_piece : Piece::None,
     };
 
     assert_eq!(test_board.full(), false);
@@ -48,7 +48,7 @@ fn utils_check_status_function()
                     [Piece::X,Piece::X,Piece::X],
                     [Piece::None,Piece::None,Piece::None]],
         score : 0,
-        current_piece : Piece::None,
+        computer_piece : Piece::None,
     };
 
     let mut winner = check_status(&test_board);
@@ -108,7 +108,7 @@ fn utils_check_blocker_function()
                     [Piece::X,Piece::O,Piece::X],
                     [Piece::None,Piece::None,Piece::None]],
         score : 0,
-        current_piece : Piece::None,
+        computer_piece : Piece::None,
     };
 
     let blocker = check_blocker(&test_board, 1,1);
@@ -139,9 +139,9 @@ fn utils_diver_function()
                     [Piece::None,Piece::X,Piece::X],
                     [Piece::None,Piece::None,Piece::None]],
         score : 0,
-        current_piece : Piece::X,
+        computer_piece : Piece::X,
     };
-    let score = dive(&test_board, &test_board.current_piece, 0,2, 1);
+    let score = dive(&test_board, &test_board.computer_piece, 0,2, 1);
     println!("score : {}", score);
     assert_eq!(score, 900);
 
@@ -150,7 +150,7 @@ fn utils_diver_function()
                             [Piece::None,Piece::X,Piece::X],
                             [Piece::None,Piece::None,Piece::None]];
 
-    let score = dive(&test_board, &test_board.current_piece, 1,0, 1);
+    let score = dive(&test_board, &test_board.computer_piece, 1,0, 1);
     println!("score : {}", score);
     assert_eq!(score, 900);
 
@@ -158,14 +158,14 @@ fn utils_diver_function()
                             [Piece::None,Piece::X,Piece::X],
                             [Piece::None,Piece::None,Piece::None]];
 
-    let score = dive(&test_board, &test_board.current_piece, 2,0, 1);
+    let score = dive(&test_board, &test_board.computer_piece, 2,0, 1);
     println!("score : {}", score);
     assert_eq!(score, 450);
 
     test_board.positions = [[Piece::O,Piece::None,Piece::None],
                             [Piece::None,Piece::None,Piece::None],
                             [Piece::None,Piece::None,Piece::None]];
-    let score = dive(&test_board, &test_board.current_piece, 1,1, 1);
+    let score = dive(&test_board, &test_board.computer_piece, 1,1, 1);
     println!("score : {}", score);
     assert_eq!(score, 300);
 
@@ -190,7 +190,7 @@ fn computer_vs_computer() {
                     [Piece::None,Piece::None,Piece::None],
                     [Piece::None,Piece::None,Piece::None]],
         score : 0,
-        current_piece : Piece::X,
+        computer_piece : Piece::X,
     };
     let mut done : bool;
     let mut winner : Piece;
@@ -201,7 +201,7 @@ fn computer_vs_computer() {
         done = test_board.full();
         test_board.display_board(done, &winner);
         if done || matches!(winner, Piece::O | Piece::X) { break };
-        test_board.current_piece = test_board.current_piece.get_other_piece();
+        test_board.computer_piece = test_board.computer_piece.get_other_piece();
         std::thread::sleep(sleep_duration);
     } 
     assert!(matches!(winner, Piece::None)); // No winners

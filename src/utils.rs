@@ -43,7 +43,7 @@ pub fn dive(board: &Board, piece: &Piece, y: usize, x: usize, in_level: i32) -> 
     let mut new_board = (*board).clone();
     new_board.positions[y][x] = piece.clone();
     let winner = check_status(&new_board);
-    if board.current_piece.get_piece() == winner.get_piece() {
+    if board.computer_piece.get_piece() == winner.get_piece() {
         return level_score;
     } else if winner.get_piece() == piece.get_piece() {
         return -level_score;
@@ -87,7 +87,7 @@ pub fn get_next_move(board: &mut Board) {
     for (y, row) in board.positions.iter().enumerate() {
         for (x, _col) in row.iter().enumerate() {
             if matches!(board.positions[y][x], Piece::None) {
-                let mut topscore = dive(&board, &board.current_piece, y, x, 1);
+                let mut topscore = dive(&board, &board.computer_piece, y, x, 1);
                 if x==1 && y==1  {
                     topscore = topscore * 2; // Center square is important
                 }
@@ -101,7 +101,7 @@ pub fn get_next_move(board: &mut Board) {
         }
     }
     if made_new_moves {
-        board.positions[top_score_y][top_score_x] = board.current_piece.clone();
+        board.positions[top_score_y][top_score_x] = board.computer_piece.clone();
     }
 }
 

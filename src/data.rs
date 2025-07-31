@@ -28,7 +28,7 @@ impl Piece {
 pub struct Board {
     pub positions: [[Piece; 3];3],
     pub score: i32,
-    pub current_piece : Piece,
+    pub computer_piece : Piece,
 }
 
 impl Board {

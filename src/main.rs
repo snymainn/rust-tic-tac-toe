@@ -44,12 +44,12 @@ fn main() {
     
     println!("Selected player {}", my_piece.get_piece());
 
-    let mut start_board = Board {
+    let mut board = Board {
         positions : [[Piece::None,Piece::None,Piece::None],
                     [Piece::None,Piece::None,Piece::None],
                     [Piece::None,Piece::None,Piece::None]],
         score : 0,
-        current_piece : my_piece.get_other_piece(),
+        computer_piece : my_piece.get_other_piece(),
     };
     let mut done = false;
     let mut winner: Piece = Piece::None;
@@ -59,23 +59,23 @@ fn main() {
         1 => println!("Computer starts!"),
         _ => {
             println!("You start!");
-            start_board.display_board(done, &winner);
-            let position: Position = get_input(&start_board);
+            board.display_board(done, &winner);
+            let position: Position = get_input(&board);
             println!("Got position : {},{}", position.row, position.col);
-            start_board.positions[position.row-1][position.col-1] = my_piece.clone(); // Needs clone due to iteration
+            board.positions[position.row-1][position.col-1] = my_piece.clone(); // Needs clone due to iteration
         },
     }
     
     loop {
-        get_next_move(&mut start_board);
-        winner = check_status(&start_board);
-        done = start_board.full();
-        start_board.display_board(done, &winner);
+        get_next_move(&mut board);
+        winner = check_status(&board);
+        done = board.full();
+        board.display_board(done, &winner);
         if done || matches!(winner, Piece::O | Piece::X) { break };
-        let position: Position = get_input(&start_board);
+        let position: Position = get_input(&board);
         println!("Got position : {},{}", position.row, position.col);
-        start_board.positions[position.row-1][position.col-1] = my_piece.clone(); // Needs clone due to iteration
-        start_board.display_board(done, &winner);
+        board.positions[position.row-1][position.col-1] = my_piece.clone(); // Needs clone due to iteration
+        board.display_board(done, &winner);
     }   
 }
 
