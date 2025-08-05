@@ -37,38 +37,43 @@ pub fn get_input(board: &Board) -> Position {
     Position { row: row, col: col }
 }
 
-pub fn dive(board: &Board, piece: &Piece, y: usize, x: usize, in_level: i32) -> i32
+pub fn dive(board: &Board, piece: &Piece, y: usize, x: usize, in_level: i32, debug: bool) -> (i32, i32)
 {
     let level_score = ((9.0/(in_level as f32))*100.0) as i32;
     let mut new_board = (*board).clone();
     new_board.positions[y][x] = piece.clone();
     let winner = check_status(&new_board);
     if board.computer_piece.get_piece() == winner.get_piece() {
-        return level_score;
+        return (level_score, 0);
     } else if winner.get_piece() == piece.get_piece() {
-        return -level_score;
+        return (-level_score, 1);
     }
     if check_blocker(&new_board, y, x) {
-        return level_score;
+        return (level_score-5, 0); // Let blocker have slightly less score to avoid it overriding instant win
     }
     let mut temp_score: i32;
+    let mut temp_losses: i32;
+    let mut losses = 0;
     let mut first: bool = false;
     let next_piece = piece.get_other_piece();
 
     for (y, row) in new_board.positions.iter().enumerate() {
         for (x, _col) in row.iter().enumerate() {
             if matches!(new_board.positions[y][x], Piece::None) {
-                temp_score = dive(&new_board, &next_piece, y, x, in_level+1);
+                (temp_score, temp_losses) = dive(&new_board, &next_piece, y, x, in_level+1, debug);
                 if first == false {
                     new_board.score = temp_score;
                     first = true;
                 } else if temp_score > new_board.score {
                     new_board.score = temp_score;
                 }
+                losses += temp_losses;
+                if debug && in_level < 3 { println!("{0:>tab$} : {1}, score: {2}, new_board.score : {3}, losses : {4}", "Level ", 
+                    in_level, temp_score, new_board.score, losses, tab=((in_level*10) as usize)); };
             }
         }
     }
-    return new_board.score;
+    return (new_board.score, losses);
 }
 
 /*
@@ -78,7 +83,7 @@ pub fn dive(board: &Board, piece: &Piece, y: usize, x: usize, in_level: i32) -> 
             false : not done, more space available
             true : done, not more space on board
  */
-pub fn get_next_move(board: &mut Board) {
+pub fn get_next_move(board: &mut Board, debug: bool) {
     let mut made_new_moves = false;
 
     let mut top_score_y = 0;
@@ -87,11 +92,14 @@ pub fn get_next_move(board: &mut Board) {
     for (y, row) in board.positions.iter().enumerate() {
         for (x, _col) in row.iter().enumerate() {
             if matches!(board.positions[y][x], Piece::None) {
-                let mut topscore = dive(&board, &board.computer_piece, y, x, 1);
+                if debug { println!("Analysing position row={}, x={}", y, x); };
+                let (mut topscore, losses) = dive(&board, &board.computer_piece, y, x, 1, debug);
                 if x==1 && y==1  {
                     topscore = topscore * 2; // Center square is important
                 }
+                topscore -= losses;
                 if made_new_moves == false || topscore > board.score {
+                    if debug { println!("    *** New top score: {}, row:{}, x={}", topscore, y, x); }
                     board.score = topscore;
                     made_new_moves = true;
                     top_score_y = y;

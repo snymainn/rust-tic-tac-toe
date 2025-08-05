@@ -73,7 +73,7 @@ fn main() {
             human_player = false;
         }
         else {
-            get_next_move(&mut board);
+            get_next_move(&mut board, false);
             human_player = true;
         }
         winner = check_status(&board);

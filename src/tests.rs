@@ -141,16 +141,16 @@ fn utils_diver_function()
         score : 0,
         computer_piece : Piece::X,
     };
-    let score = dive(&test_board, &test_board.computer_piece, 0,2, 1);
+    let (score, _) = dive(&test_board, &test_board.computer_piece, 0,2, 1, false);
     println!("score : {}", score);
-    assert_eq!(score, 900);
+    assert_eq!(score, 895);
 
     /* Instant win */
     test_board.positions = [[Piece::O,Piece::O,Piece::None],
                             [Piece::None,Piece::X,Piece::X],
                             [Piece::None,Piece::None,Piece::None]];
 
-    let score = dive(&test_board, &test_board.computer_piece, 1,0, 1);
+    let (score, _) = dive(&test_board, &test_board.computer_piece, 1,0, 1, false);
     println!("score : {}", score);
     assert_eq!(score, 900);
 
@@ -158,18 +158,76 @@ fn utils_diver_function()
                             [Piece::None,Piece::X,Piece::X],
                             [Piece::None,Piece::None,Piece::None]];
 
-    let score = dive(&test_board, &test_board.computer_piece, 2,0, 1);
+    let (score, _) = dive(&test_board, &test_board.computer_piece, 2,0, 1, false);
     println!("score : {}", score);
-    assert_eq!(score, 450);
+    assert_eq!(score, 445);
 
     test_board.positions = [[Piece::O,Piece::None,Piece::None],
                             [Piece::None,Piece::None,Piece::None],
                             [Piece::None,Piece::None,Piece::None]];
-    let score = dive(&test_board, &test_board.computer_piece, 1,1, 1);
+    let (score, _) = dive(&test_board, &test_board.computer_piece, 1,1, 1, false);
     println!("score : {}", score);
-    assert_eq!(score, 300);
+    assert_eq!(score, 295);
+
 
 }
+
+/* Add "-- debug --nocapture" to show search tree */
+#[test]
+fn get_next_move_instant_win()
+{
+    /* Test that computer chooses instant win instead of blocker */
+
+    let mut test_board: Board = Board {
+        positions : [[Piece::O,Piece::X,Piece::X],
+                    [Piece::X,Piece::X,Piece::None],
+                    [Piece::O,Piece::O,Piece::None]],
+        score : 0,
+        computer_piece: Piece::O
+    };
+
+    let mut debug = false;
+    use std::env;
+    let args: Vec<String> = env::args().collect();
+    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("debug")) {
+        debug = true;
+    }
+
+    get_next_move(&mut test_board, debug);
+    let winner = check_status(&test_board);
+    let done = test_board.full();
+    test_board.display_board(done, &winner);
+    assert_eq!(winner, Piece::O);
+}
+
+/* Add "-- debug --nocapture" to show search tree */
+#[test]
+fn get_next_move_future_best()
+{
+    /* Test that computer chooses position that will block certain user win in future */
+
+    let mut test_board: Board = Board {
+        positions : [[Piece::O,Piece::X,Piece::None],
+                    [Piece::None,Piece::X,Piece::None],
+                    [Piece::None,Piece::O,Piece::None]],
+        score : 0,
+        computer_piece: Piece::X
+    };
+
+    let mut debug = false;
+    use std::env;
+    let args: Vec<String> = env::args().collect();
+    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("debug")) {
+        debug = true;
+    }
+
+    get_next_move(&mut test_board, debug);
+    let winner = check_status(&test_board);
+    let done = test_board.full();
+    test_board.display_board(done, &winner);
+    assert_eq!(test_board.positions[2][0], Piece::X);
+}
+
 
 #[test]
 fn computer_vs_computer() {
@@ -183,7 +241,10 @@ fn computer_vs_computer() {
     if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("--nocapture")) {
         sleep_duration = Duration::new(1,0);
     }
-
+    let mut debug = false;
+    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("debug")) {
+        debug = true;
+    }
     /* Instant blocker */
     let mut test_board = Board {
         positions : [[Piece::None,Piece::None,Piece::None],
@@ -196,7 +257,7 @@ fn computer_vs_computer() {
     let mut winner : Piece;
     use std::time::Duration;
     loop {
-        get_next_move(&mut test_board);
+        get_next_move(&mut test_board, debug);
         winner = check_status(&test_board);
         done = test_board.full();
         test_board.display_board(done, &winner);
