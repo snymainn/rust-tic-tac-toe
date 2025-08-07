@@ -336,4 +336,70 @@ fn neural_functions() {
     pos = find_largest_index(&out);
     assert!(pos == 0, "Failed to guess A");
     println!("Guessed {}", A_B_C[pos]);
-}    
+}
+
+/* Add "-- debug --nocapture" to show search tree */
+#[test]
+fn neural_test_1()
+{
+    /* Test that computer chooses position that will block certain user win in future */
+    
+    /*
+    let mut test_board: Board = Board {
+        positions : [[Piece::O,Piece::X,Piece::None],
+                    [Piece::None,Piece::X,Piece::None],
+                    [Piece::None,Piece::O,Piece::None]],
+        score : 0,
+        computer_piece: Piece::X
+    };
+    */
+    
+    // Since computer is X, make all O=1, and all X=2
+    // Input array then becomes 1, 2, 0, 0, 2, 0, 0, 1, 0
+    // Ouput array must then be 3,0
+
+    let mut _debug = false;
+    use std::env;
+    let args: Vec<String> = env::args().collect();
+    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("debug")) {
+        _debug = true;
+    }
+    use crate::neural_utils::*;  
+    let alpha = 0.1;
+    let input_array: [i8; 9] = [1, 2, 0, 0, 2, 0, 0, 1, 0];
+    let input_array_off: [i8; 9] = [1, 2, 0, 0, 2, 0, 2, 1, 0];
+    let output_array: [i8; 2] = [1, 0];
+
+    let mut w1: &mut [&mut [f64]] = &mut [
+        &mut [1.4471, 0.1089, -0.5946, -0.3561, 1.0164, ],
+        &mut [0.5838, -1.2973, 1.6353, -0.1877, 0.5103, ],
+        &mut [-1.2306, 0.4537, 1.0708, 0.1518, 1.2684, ],
+        &mut [0.1237, -0.5785, -1.7884, -0.2588, -0.6410, ],
+        &mut [-1.0211, -1.3709, 0.7936, 0.9652, -0.2878, ],
+        &mut [0.8478, -1.2553, 0.2006, 0.4499, -1.1906, ],
+        &mut [0.0827, -0.5795, 0.1719, 0.3833, -0.4288, ],
+        &mut [-2.1429, -1.0544, 0.6255, -1.4042, 0.8119, ],
+        &mut [-0.6639, 0.2168, -0.2936, 0.4671, -0.5450, ]];
+
+    
+    let mut w2: &mut [&mut [f64]] = &mut [
+        &mut [1.1697, 1.5113],
+        &mut [-0.8300, 0.0493],
+        &mut [0.3861, -2.4398],
+        &mut [-0.6741, 0.1552],
+        &mut [-0.9879, -0.8454]];
+
+    for _ in 0..20 {
+        back_prop(&input_array, &output_array, &mut w1, &mut w2, alpha);
+    }
+
+    let mut out = forward(&input_array, &w1, &w2);
+    let mut losss = loss(&output_array, &out);
+    println!("Loss : {}, out : {:?}", losss, out);
+
+    out = forward(&input_array_off, &w1, &w2);
+    losss = loss(&output_array, &out);
+    println!("Loss : {}, out : {:?}", losss, out);
+
+    // assert_eq!(test_board.positions[2][0], Piece::X);
+}
