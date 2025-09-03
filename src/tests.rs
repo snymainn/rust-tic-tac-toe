@@ -403,3 +403,29 @@ fn neural_test_1()
 
     // assert_eq!(test_board.positions[2][0], Piece::X);
 }
+
+#[test]
+//#[ignore = "wip"] // use -- --ignored to cargo test to run this test
+fn neural_tic_tac_toe_train() {
+    use crate::neural_utils::*;   
+    use crate::neural_data::*; 
+    use approx::assert_abs_diff_eq;
+    
+    let alpha = 0.1;
+
+    // Generate W_Out, output weight matrix, number of rows must be equal to previous number
+    // of nodes. Number of columns must be equal to number of output nodes, which i 3x3=9
+
+    // Create a mutable version of the original random weight matrixes
+    let mut w1: Vec<Vec<f64>> = W1.iter().map(|row_ref| row_ref.to_vec()).collect();
+    let mut w2: Vec<Vec<f64>> = W2.iter().map(|row_ref| row_ref.to_vec()).collect();
+    // Create a shadow variable pointing to the mutable version of the matrixes
+    // where the number of rows is not changeable, but the rows themselves are slices that
+    // point to memory that can be modified
+    let mut w1: Vec<&mut [f64]> = w1.iter_mut().map(|r| r.as_mut_slice()).collect();
+    let mut w2: Vec<&mut [f64]> = w2.iter_mut().map(|r| r.as_mut_slice()).collect();
+    
+    back_prop(A_INPUT, A_OUTPUT, &mut w1, &mut w2, alpha);
+
+
+}
