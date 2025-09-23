@@ -1,5 +1,6 @@
 use std::process::exit;
-
+use rand::thread_rng;
+use rand_distr::{Normal, Distribution};
 
 /*
     Transform any scalar value to something between 0 and 1
@@ -33,7 +34,7 @@ fn scalar_dot_product(input_vector: &[f64], weigth_vector: &[f64]) -> f64 {
     sum
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
+#[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
 pub fn loss(output: &[i8], guess: &[f64]) -> f64 {
     assert_eq!(output.len(), guess.len(), "Vectors must have the same length in loss calculation.");
 
@@ -51,7 +52,7 @@ pub fn loss(output: &[i8], guess: &[f64]) -> f64 {
     Return:
             Predicted output vector
 */
-#[cfg_attr(not(test), allow(dead_code))]
+#[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
 pub fn forward(input: &[i8], w1: &[&mut [f64]], w2: &[&mut [f64]]) -> Vec<f64> {
 
     // Tranform the input vector from i8 to f64
@@ -88,7 +89,7 @@ pub fn forward(input: &[i8], w1: &[&mut [f64]], w2: &[&mut [f64]]) -> Vec<f64> {
     Return:
             Modified weigth matrixes w1 and w2
 */
-#[cfg_attr(not(test), allow(dead_code))]
+#[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
 pub fn back_prop(input: &[i8], output: &[i8], w1: &mut [&mut [f64]], w2: &mut [&mut [f64]], alpha: f64) {
 
     // Tranform the input vector from i8 to f64
@@ -173,7 +174,7 @@ pub fn back_prop(input: &[i8], output: &[i8], w1: &mut [&mut [f64]], w2: &mut [&
 /*
     Return element index of with largest value in array
 */
-#[cfg_attr(not(test), allow(dead_code))]
+#[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
 pub fn find_largest_index(guess: &[f64]) -> usize {
     let pos: Option<(usize, &f64)> = guess.iter().enumerate().
         max_by(|(_,a), (_,b)| a.partial_cmp(b).unwrap());
@@ -187,4 +188,32 @@ pub fn find_largest_index(guess: &[f64]) -> usize {
             exit(1);
         }
     }
+}
+
+/*
+    Return a matrix of dimension X x Y with numbers
+    in a gaussian distribution around 0 with standard deviation of 1
+    Limit it to -2 to +2, i.e. generate a new number if outside
+*/
+#[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
+pub fn gaussian_matrix(_x: i8, _y: i8) -> f64
+{
+    let mut rng = thread_rng();
+    
+    // Define a gaussian distribution around zero with stddev of 1
+    let normal_dist = Normal::new(0.0, 1.0).unwrap();
+    
+    // Generate a random number
+    let mut random_number: f64;
+    let mut iterations = 0;
+    loop {
+        iterations += 1;
+        random_number = normal_dist.sample(&mut rng);
+        println!("A random gaussian number, mostly within -1 to 1: {}", random_number);
+        if (random_number < 2.0 && random_number > -2.0)|| iterations > 10 {
+            break;
+        }
+    }
+
+    return random_number;
 }

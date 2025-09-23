@@ -404,12 +404,21 @@ fn neural_test_1()
     // assert_eq!(test_board.positions[2][0], Piece::X);
 }
 
+
+#[test]
+fn gaussian_matrix_test() {
+    use crate::neural_utils::*;
+    let res = gaussian_matrix(3, 5);
+    assert!(res > -2.0 && res < 2.0, "Number is not within range -2.0 to 2.0");
+
+}
+
 #[test]
 //#[ignore = "wip"] // use -- --ignored to cargo test to run this test
 fn neural_tic_tac_toe_train() {
     use crate::neural_utils::*;   
     use crate::neural_data::*; 
-    use approx::assert_abs_diff_eq;
+    //use approx::assert_abs_diff_eq;
     
     let alpha = 0.1;
 
