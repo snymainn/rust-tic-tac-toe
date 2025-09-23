@@ -425,6 +425,9 @@ fn neural_tic_tac_toe_train() {
     // Generate W_Out, output weight matrix, number of rows must be equal to previous number
     // of nodes. Number of columns must be equal to number of output nodes, which i 3x3=9
 
+    let w_out = gaussian_matrix(15, 9);
+    println!(" {}", w_out);
+
     // Create a mutable version of the original random weight matrixes
     let mut w1: Vec<Vec<f64>> = W1.iter().map(|row_ref| row_ref.to_vec()).collect();
     let mut w2: Vec<Vec<f64>> = W2.iter().map(|row_ref| row_ref.to_vec()).collect();
