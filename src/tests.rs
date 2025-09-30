@@ -404,13 +404,23 @@ fn neural_test_1()
     // assert_eq!(test_board.positions[2][0], Piece::X);
 }
 
-
+// cargo test gaussian_matrix_test
+// cargo test gaussian_matrix_test -- --nocapture
 #[test]
 fn gaussian_matrix_test() {
     use crate::neural_utils::*;
-    let res = gaussian_matrix(3, 5);
-    assert!(res > -2.0 && res < 2.0, "Number is not within range -2.0 to 2.0");
+    let rows: usize = 5;
+    let columns: usize = 3;
+    let mut matrix: Vec<Vec<f64>> = vec![vec![0.0; columns]; rows]; 
+    let mut matrix: Vec<&mut [f64]> = matrix.iter_mut().map(|r| r.as_mut_slice()).collect();
+    gaussian_matrix(columns as i8, rows as i8, &mut matrix);
 
+    println!(" {:?}", matrix);
+    for row in 0..rows {
+        for column in 0..columns {
+            assert!(matrix[row][column] > -2.0 && matrix[row][column] < 2.0 && matrix[row][column] !=  0.0, "Number is not within range -2.0 to 2.0, or equal to 0.0");
+        }
+    }
 }
 
 #[test]
@@ -424,9 +434,12 @@ fn neural_tic_tac_toe_train() {
 
     // Generate W_Out, output weight matrix, number of rows must be equal to previous number
     // of nodes. Number of columns must be equal to number of output nodes, which i 3x3=9
-
-    let w_out = gaussian_matrix(15, 9);
-    println!(" {}", w_out);
+    let rows: usize = 15;
+    let columns: usize = 9;
+    let mut w_out: Vec<Vec<f64>> = vec![vec![0.0; columns]; rows]; 
+    let mut w_out: Vec<&mut [f64]> = w_out.iter_mut().map(|r| r.as_mut_slice()).collect();
+    gaussian_matrix(columns as i8, rows as i8, &mut w_out);
+    println!(" {:?}", w_out);
 
     // Create a mutable version of the original random weight matrixes
     let mut w1: Vec<Vec<f64>> = W1.iter().map(|row_ref| row_ref.to_vec()).collect();

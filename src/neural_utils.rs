@@ -196,24 +196,27 @@ pub fn find_largest_index(guess: &[f64]) -> usize {
     Limit it to -2 to +2, i.e. generate a new number if outside
 */
 #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
-pub fn gaussian_matrix(_x: i8, _y: i8) -> f64
+pub fn gaussian_matrix(x: i8, y: i8, out: &mut [&mut [f64]])
 {
     let mut rng = thread_rng();
     
     // Define a gaussian distribution around zero with stddev of 1
     let normal_dist = Normal::new(0.0, 1.0).unwrap();
     
-    // Generate a random number
-    let mut random_number: f64;
-    let mut iterations = 0;
-    loop {
-        iterations += 1;
-        random_number = normal_dist.sample(&mut rng);
-        println!("A random gaussian number, mostly within -1 to 1: {}", random_number);
-        if (random_number < 2.0 && random_number > -2.0)|| iterations > 10 {
-            break;
+    for row in 0..y {
+        for column in 0..x {
+            // Generate a random number
+            let mut random_number: f64;
+            let mut iterations = 0;
+            loop {
+                iterations += 1;
+                random_number = normal_dist.sample(&mut rng);
+                //println!("A random gaussian number, mostly within -1 to 1: {}", random_number);
+                if (random_number < 2.0 && random_number > -2.0 && random_number != 0.0)|| iterations > 10 {
+                    break;
+                }
+            }
+            out[row as usize][column as usize] = random_number;
         }
     }
-
-    return random_number;
 }
