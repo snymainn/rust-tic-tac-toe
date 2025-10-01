@@ -439,7 +439,7 @@ fn neural_tic_tac_toe_train() {
     let mut w_out: Vec<Vec<f64>> = vec![vec![0.0; columns]; rows]; 
     let mut w_out: Vec<&mut [f64]> = w_out.iter_mut().map(|r| r.as_mut_slice()).collect();
     gaussian_matrix(columns as i8, rows as i8, &mut w_out);
-    println!(" {:?}", w_out);
+    print_matrix(&w_out);
 
     // Create a mutable version of the original random weight matrixes
     let mut w1: Vec<Vec<f64>> = W1.iter().map(|row_ref| row_ref.to_vec()).collect();

@@ -167,3 +167,18 @@ pub fn check_blocker(board: &Board, y: usize, x: usize) -> bool {
     return false; 
 }
 
+
+pub fn print_matrix(matrix: &[&mut[f64]]) {
+        print!("          ");
+        for (x, _) in matrix[0].iter().enumerate() {
+            print!("col: {:2}  ", x+1);
+        }
+        println!();
+        for (y, row) in matrix.iter().enumerate() {
+            print!("row {:2} : ", y+1);
+            for (_, col) in row.iter().enumerate() {
+                print!("{:8.5} ", col);
+            }
+            println!();
+        }
+}
