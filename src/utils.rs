@@ -166,8 +166,17 @@ pub fn check_blocker(board: &Board, y: usize, x: usize) -> bool {
     }
     return false; 
 }
-
-
+///
+/// Print two dimensional matrix
+/// 
+/// Inner slices must be mutable since they are often weigth matrixes 
+/// that must be updated in other functions, but the outer slice is not mutable
+/// and thus it is not possible to iter_mut over it, not thus not possible 
+/// to iter_mut over the inner slice either. 
+/// But it could be that the construct here locks other from borrowing the matrix
+/// sent in. 
+/// 
+#[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
 pub fn print_matrix(matrix: &[&mut[f64]]) {
         print!("          ");
         for (x, _) in matrix[0].iter().enumerate() {
