@@ -270,6 +270,7 @@ fn computer_vs_computer() {
 
 #[test]
 //#[ignore = "wip"] // use -- --ignored to cargo test to run this test
+// Test neural function with the ABC letters
 fn neural_functions() {
     use crate::neural_utils::*;   
     use crate::neural_data::*; 
@@ -434,21 +435,21 @@ fn neural_tic_tac_toe_train() {
 
     // Generate W_Out, output weight matrix, number of rows must be equal to previous number
     // of nodes. Number of columns must be equal to number of output nodes, which i 3x3=9
-    let rows: usize = 15;
-    let columns: usize = 9;
+    let mut rows: usize = 15;
+    let mut columns: usize = 9;
     let mut w_out: Vec<Vec<f64>> = vec![vec![0.0; columns]; rows]; 
     let mut w_out: Vec<&mut [f64]> = w_out.iter_mut().map(|r| r.as_mut_slice()).collect();
     gaussian_matrix(columns as i8, rows as i8, &mut w_out);
     print_matrix(&w_out);
 
-    // Create a mutable version of the original random weight matrixes
-    let mut w1: Vec<Vec<f64>> = W1.iter().map(|row_ref| row_ref.to_vec()).collect();
-    let mut w2: Vec<Vec<f64>> = W2.iter().map(|row_ref| row_ref.to_vec()).collect();
-    // Create a shadow variable pointing to the mutable version of the matrixes
-    // where the number of rows is not changeable, but the rows themselves are slices that
-    // point to memory that can be modified
-    let mut w1: Vec<&mut [f64]> = w1.iter_mut().map(|r| r.as_mut_slice()).collect();
-    let mut w2: Vec<&mut [f64]> = w2.iter_mut().map(|r| r.as_mut_slice()).collect();
+    // Generate W_In, input weigth matrix, number of rows(y) must be equal to input nodes = 9
+    // Number of columns (x) must be equal to number of nodes in next level = 15
+    rows = 9;
+    columns = 15;
+    let mut w_in: Vec<Vec<f64>> = vec![vec![0.0; columns]; rows]; // Init dynamic matrix
+    let mut w_in: Vec<&mut [f64]> = w_in.iter_mut().map(|r| r.as_mut_slice()).collect();
+    gaussian_matrix(columns as i8, rows as i8, &mut w_in);
+    print_matrix(&w_in);
     
     back_prop(A_INPUT, A_OUTPUT, &mut w1, &mut w2, alpha);
 
