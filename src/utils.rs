@@ -176,7 +176,8 @@ pub fn check_blocker(board: &Board, y: usize, x: usize) -> bool {
 /// But it could be that the construct here locks other from borrowing the matrix
 /// sent in. 
 /// 
-#[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
+//#[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
+#[cfg_attr(test,allow(dead_code))]
 pub fn print_matrix(matrix: &[&mut[f64]]) {
         print!("          ");
         for (x, _) in matrix[0].iter().enumerate() {

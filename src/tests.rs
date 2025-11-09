@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 #[cfg(test)]
 use super::*;
 
@@ -36,6 +38,48 @@ fn full_function()
     
     assert_eq!(test_board.full(), true);
 }
+
+#[test]
+fn flatten_board_function()
+{
+
+    let test_board = Board {
+        positions : [[Piece::None,Piece::None,Piece::None],
+                    [Piece::X,Piece::X,Piece::X],
+                    [Piece::None,Piece::None,Piece::O]],
+        score : 0,
+        computer_piece : Piece::X,
+    };
+    let expected_result = [0, 0, 0, 1, 1, 1, 0, 0, -1];
+    assert_eq!(test_board.flatten_board(), expected_result);
+}
+
+
+#[test]
+fn reshape_board_function()
+{
+    let input_vector = [0, 0, 0, 1, 1, 1, 0, 0, -1];
+
+    let mut input_board = Board {
+        positions : [[Piece::None,Piece::None,Piece::None],
+                [Piece::None,Piece::None,Piece::None],
+                [Piece::None,Piece::None,Piece::None]],
+        score : 0,
+        computer_piece : Piece::X,
+    };
+
+    let expected_board = Board {
+        positions : [[Piece::None,Piece::None,Piece::None],
+                    [Piece::X,Piece::X,Piece::X],
+                    [Piece::None,Piece::None,Piece::O]],
+        score : 0,
+        computer_piece : Piece::X,
+    };
+    input_board.reshape_board(input_vector);
+    assert_eq!(input_board, expected_board);
+}
+
+
 
 #[test]
 fn utils_check_status_function()
@@ -245,7 +289,7 @@ fn computer_vs_computer() {
     if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("debug")) {
         debug = true;
     }
-    /* Instant blocker */
+
     let mut test_board = Board {
         positions : [[Piece::None,Piece::None,Piece::None],
                     [Piece::None,Piece::None,Piece::None],
@@ -339,72 +383,6 @@ fn neural_functions() {
     println!("Guessed {}", A_B_C[pos]);
 }
 
-/* Add "-- debug --nocapture" to show search tree */
-#[test]
-fn neural_test_1()
-{
-    /* Test that computer chooses position that will block certain user win in future */
-    
-    /*
-    let mut test_board: Board = Board {
-        positions : [[Piece::O,Piece::X,Piece::None],
-                    [Piece::None,Piece::X,Piece::None],
-                    [Piece::None,Piece::O,Piece::None]],
-        score : 0,
-        computer_piece: Piece::X
-    };
-    */
-    
-    // Since computer is X, make all O=1, and all X=2
-    // Input array then becomes 1, 2, 0, 0, 2, 0, 0, 1, 0
-    // Ouput array must then be 3,0
-
-    let mut _debug = false;
-    use std::env;
-    let args: Vec<String> = env::args().collect();
-    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("debug")) {
-        _debug = true;
-    }
-    use crate::neural_utils::*;  
-    let alpha = 0.1;
-    let input_array: [i8; 9] = [1, 2, 0, 0, 2, 0, 0, 1, 0];
-    let input_array_off: [i8; 9] = [1, 2, 0, 0, 2, 0, 2, 1, 0];
-    let output_array: [i8; 2] = [1, 0];
-
-    let mut w1: &mut [&mut [f64]] = &mut [
-        &mut [1.4471, 0.1089, -0.5946, -0.3561, 1.0164, ],
-        &mut [0.5838, -1.2973, 1.6353, -0.1877, 0.5103, ],
-        &mut [-1.2306, 0.4537, 1.0708, 0.1518, 1.2684, ],
-        &mut [0.1237, -0.5785, -1.7884, -0.2588, -0.6410, ],
-        &mut [-1.0211, -1.3709, 0.7936, 0.9652, -0.2878, ],
-        &mut [0.8478, -1.2553, 0.2006, 0.4499, -1.1906, ],
-        &mut [0.0827, -0.5795, 0.1719, 0.3833, -0.4288, ],
-        &mut [-2.1429, -1.0544, 0.6255, -1.4042, 0.8119, ],
-        &mut [-0.6639, 0.2168, -0.2936, 0.4671, -0.5450, ]];
-
-    
-    let mut w2: &mut [&mut [f64]] = &mut [
-        &mut [1.1697, 1.5113],
-        &mut [-0.8300, 0.0493],
-        &mut [0.3861, -2.4398],
-        &mut [-0.6741, 0.1552],
-        &mut [-0.9879, -0.8454]];
-
-    for _ in 0..20 {
-        back_prop(&input_array, &output_array, &mut w1, &mut w2, alpha);
-    }
-
-    let mut out = forward(&input_array, &w1, &w2);
-    let mut losss = loss(&output_array, &out);
-    println!("Loss : {}, out : {:?}", losss, out);
-
-    out = forward(&input_array_off, &w1, &w2);
-    losss = loss(&output_array, &out);
-    println!("Loss : {}, out : {:?}", losss, out);
-
-    // assert_eq!(test_board.positions[2][0], Piece::X);
-}
-
 // cargo test gaussian_matrix_test
 // cargo test gaussian_matrix_test -- --nocapture
 #[test]
@@ -424,14 +402,33 @@ fn gaussian_matrix_test() {
     }
 }
 
+// cargo test neural_tic_tac_toe_train -- --nocapture 
 #[test]
 //#[ignore = "wip"] // use -- --ignored to cargo test to run this test
 fn neural_tic_tac_toe_train() {
     use crate::neural_utils::*;   
-    use crate::neural_data::*; 
     //use approx::assert_abs_diff_eq;
+    use std::env;
+    use std::time::Duration;
+    let mut sleep_duration = Duration::default();
+
+    // Detect command line arguments after -- e.g. cargo test -- --nocapture
+    // Here --nocapture will be detected and thus a delay will be inserted so
+    // we can see the computer playing the game with itself as opponent
+    let args: Vec<String> = env::args().collect();
+    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("--nocapture")) {
+        sleep_duration = Duration::new(1,0);
+    }
+    let mut debug = false;
+    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("debug")) {
+        debug = true;
+    }
     
     let alpha = 0.1;
+
+    //
+    // GENERATE SYNAPSE MATRIXES
+    //
 
     // Generate W_Out, output weight matrix, number of rows must be equal to previous number
     // of nodes. Number of columns must be equal to number of output nodes, which i 3x3=9
@@ -440,7 +437,7 @@ fn neural_tic_tac_toe_train() {
     let mut w_out: Vec<Vec<f64>> = vec![vec![0.0; columns]; rows]; 
     let mut w_out: Vec<&mut [f64]> = w_out.iter_mut().map(|r| r.as_mut_slice()).collect();
     gaussian_matrix(columns as i8, rows as i8, &mut w_out);
-    print_matrix(&w_out);
+    //print_matrix(&w_out);
 
     // Generate W_In, input weigth matrix, number of rows(y) must be equal to input nodes = 9
     // Number of columns (x) must be equal to number of nodes in next level = 15
@@ -449,9 +446,81 @@ fn neural_tic_tac_toe_train() {
     let mut w_in: Vec<Vec<f64>> = vec![vec![0.0; columns]; rows]; // Init dynamic matrix
     let mut w_in: Vec<&mut [f64]> = w_in.iter_mut().map(|r| r.as_mut_slice()).collect();
     gaussian_matrix(columns as i8, rows as i8, &mut w_in);
-    print_matrix(&w_in);
+    //print_matrix(&w_in);
     
-    back_prop(A_INPUT, A_OUTPUT, &mut w1, &mut w2, alpha);
+    //
+    // TRAIN NEURAL NET WITH TREE SEARCH GAME LOGIC (SIMPLE DEPTH FIRST)
+    //
 
+    let mut test_board = Board {
+        positions : [[Piece::None,Piece::None,Piece::None],
+                    [Piece::None,Piece::None,Piece::None],
+                    [Piece::None,Piece::None,Piece::None]],
+        score : 0,
+        computer_piece : Piece::X,
+    };
+    let mut done : bool = false;
+    let mut winner : Piece = Piece::None;
+    for _ in 0..2 {
+        let input_board = test_board.flatten_board();
+        //println!("Input board{:?}", input_board);
+        //test_board.display_board(done, &winner);
+        get_next_move(&mut test_board, debug);
+        let output_board = test_board.flatten_board();
+        //println!("Output board{:?}", output_board);
+        winner = check_status(&test_board);
+        done = test_board.full();
+        //test_board.display_board(done, &winner);
+
+        // Train on input and output boards
+        print!("Loss:");
+        for _ in 0..20 {
+            back_prop(&input_board, &output_board, &mut w_in, &mut w_out, alpha);
+            let out = forward(&input_board, &w_in, &w_out);
+            let losss: f64 = loss(&output_board, &out);
+            print!(" {:.2}", losss);
+        } 
+        println!("");
+
+        if done || matches!(winner, Piece::O | Piece::X) { break };
+        test_board.computer_piece = test_board.computer_piece.get_other_piece();
+        //std::thread::sleep(sleep_duration);
+    } 
+
+
+    //
+    // LET TRAINED NEURAL NET PLAY AGAINS TREE SEARCH GAME LOGIC
+    //
+
+    test_board = Board {
+        positions : [[Piece::None,Piece::None,Piece::None],
+                [Piece::None,Piece::None,Piece::None],
+                [Piece::None,Piece::None,Piece::None]],
+        score : 0,
+        computer_piece : Piece::X,
+    };
+    done = false;
+    winner = Piece::None;
+
+    for _ in 0..1 {
+        let input_board = test_board.flatten_board();
+        println!("Input board{:?}", input_board);
+        test_board.display_board(done, &winner);
+        let out: Vec<f64> = forward(&input_board, &w_in, &w_out);
+        let index_max =  out.iter().enumerate().max_by(|(_, a), (_,b)| { a.partial_cmp(b).unwrap_or(Ordering::Less)}).map(|(index, _)| index);
+        //test_board.reshape_board(out);
+        print!("{:?} max: {:?}",out, index_max);
+        get_next_move(&mut test_board, debug);
+        let output_board = test_board.flatten_board();
+        println!("Output board{:?}", output_board);
+        winner = check_status(&test_board);
+        done = test_board.full();
+        test_board.display_board(done, &winner);
+
+
+        if done || matches!(winner, Piece::O | Piece::X) { break };
+        test_board.computer_piece = test_board.computer_piece.get_other_piece();
+        std::thread::sleep(sleep_duration);
+    } 
 
 }
