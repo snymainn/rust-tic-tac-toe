@@ -64,12 +64,15 @@ impl Board {
                 // Change value of flatting depending on who is playing
                 // This is done to avoid self learning (back propagation) 
                 // to be reversed every second round when the player changes
-                if *col == self.computer_piece {
+                if *col == Piece::X {
                     flattened_board[y*3+x] = 1;
                 } 
-                else if *col != self.computer_piece && *col != Piece::None
+                else if *col == Piece::O
                 {
                     flattened_board[y*3+x] = -1;
+                }
+                else {
+                    flattened_board[y*3+x] = 0;
                 } 
             }
         }
