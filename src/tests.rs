@@ -516,15 +516,20 @@ fn neural_tic_tac_toe_train() {
         let input_board = test_board.flatten_board();
         println!("Input board{:?}", input_board);
         test_board.display_board(done, &winner);
-        let out: Vec<f64> = forward(&input_board, &w_in, &w_out);
-        let index_max =  out.iter().enumerate().max_by(|(_, a), (_,b)| { a.partial_cmp(b).unwrap_or(Ordering::Less)}).map(|(index, _)| index).unwrap_or(0);
+        let mut out: Vec<f64> = forward(&input_board, &w_in, &w_out);
+        let mut sorted_out: Vec<(f64,usize)> = out.into_iter().enumerate().map(|(i,v)| (v,i)).collect();
+        sorted_out.sort_by(|a,b| b.0.partial_cmp(&a.0).unwrap());
+        println!("Sorted out: {:?}",sorted_out);
+        let sorted_out_indexes: Vec<usize> = sorted_out.into_iter().map(|(_,i)| i).collect();
+        println!("Sorted indexes: {:?}", sorted_out_indexes);
+        //let index_max =  out.iter().enumerate().max_by(|(_, a), (_,b)| { a.partial_cmp(b).unwrap_or(Ordering::Less)}).map(|(index, _)| index).unwrap_or(0);
         // TODO: SORT ON VALUE AND CHECK FROM BEGINNING WHICH IS VALID MOVE AND USE THAT
         let mut output_board = input_board;
-        output_board[index_max] = 1;
-        print!("{:?}", output_board);
+        output_board[4] = 1;
+        print!("Output board: {:?}", output_board);
         test_board.reshape_board(output_board);
         test_board.display_board(done, &winner);
-        print!("{:?} max: {:?}",out, index_max);
+        //print!("{:?} max: {:?}",out, index_max);
         test_board.computer_piece = test_board.computer_piece.get_other_piece();
         get_next_move(&mut test_board, debug);
         winner = check_status(&test_board);
