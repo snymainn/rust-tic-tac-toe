@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 #[cfg(test)]
 use super::*;
 
@@ -402,15 +400,20 @@ fn gaussian_matrix_test() {
     }
 }
 
-// cargo test neural_tic_tac_toe_train -- --nocapture 
+// cargo test neural_tic_tac_toe_train -- --nocapture [debug] [readkey] [rounds=<training rounds>]
+// add debug to get more debug printout
+// --nocapture will add 1 sec delay between each move 
+// add readkey to stop and require enter to continue
+// add rounds to change from default five training rounds
 #[test]
 //#[ignore = "wip"] // use -- --ignored to cargo test to run this test
 fn neural_tic_tac_toe_train() {
     use crate::neural_utils::*;   
-    //use approx::assert_abs_diff_eq;
     use std::env;
     use std::time::Duration;
     let mut sleep_duration = Duration::default();
+    let mut perfect_play: Vec<[i8;9]> = vec![];
+    let mut readkey_input = String::new();
 
     // Detect command line arguments after -- e.g. cargo test -- --nocapture
     // Here --nocapture will be detected and thus a delay will be inserted so
@@ -422,6 +425,22 @@ fn neural_tic_tac_toe_train() {
     let mut debug = false;
     if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("debug")) {
         debug = true;
+    }
+    let mut readkey = false;
+    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("readkey")) {
+        readkey = true;
+    }
+    let mut rounds: i32 = 5;
+    if let Some(round_input) = args.iter().find(|&&ref a| a.starts_with("rounds")) {
+        let parts = round_input.split_once("=");
+        let num_str = match parts {
+            Some((_,value)) => value.trim(),
+            None => {
+                println!("Error: String {} does not contain =", round_input);
+                return;
+            }
+        };
+        rounds = num_str.parse().expect("Error: Value is not integer");
     }
     
     let alpha = 0.1;
@@ -437,7 +456,7 @@ fn neural_tic_tac_toe_train() {
     let mut w_out: Vec<Vec<f64>> = vec![vec![0.0; columns]; rows]; 
     let mut w_out: Vec<&mut [f64]> = w_out.iter_mut().map(|r| r.as_mut_slice()).collect();
     gaussian_matrix(columns as i8, rows as i8, &mut w_out);
-    //print_matrix(&w_out);
+    if debug {print_matrix(&w_out);}
 
     // Generate W_In, input weigth matrix, number of rows(y) must be equal to input nodes = 9
     // Number of columns (x) must be equal to number of nodes in next level = 15
@@ -446,90 +465,119 @@ fn neural_tic_tac_toe_train() {
     let mut w_in: Vec<Vec<f64>> = vec![vec![0.0; columns]; rows]; // Init dynamic matrix
     let mut w_in: Vec<&mut [f64]> = w_in.iter_mut().map(|r| r.as_mut_slice()).collect();
     gaussian_matrix(columns as i8, rows as i8, &mut w_in);
-    //print_matrix(&w_in);
+    if debug {print_matrix(&w_in);}
     
     //
     // TRAIN NEURAL NET WITH TREE SEARCH GAME LOGIC (SIMPLE DEPTH FIRST)
     //
-    let rounds = 5;
-    for round in 0..=rounds {
-        let mut test_board = Board {
+    let mut train_board: Board;
+
+    for round in 1..=rounds {
+        print!("\nTraining round {}, =>", round);
+        train_board = Board {
             positions : [[Piece::None,Piece::None,Piece::None],
                         [Piece::None,Piece::None,Piece::None],
                         [Piece::None,Piece::None,Piece::None]],
-            score : 0,
+            score : 0,                
             computer_piece : Piece::X,
         };
-        //if round % 2 == 0 {
-        //    test_board.computer_piece = test_board.computer_piece.get_other_piece();
-        //}
-        println!("START PIECE: {}", test_board.computer_piece.get_piece());        
         let mut done : bool;
         let mut winner : Piece;
-        if round >= rounds {
-            print!("Loss : ")
-        }
+        print!(" loss : ");
         loop {
-            let input_board = test_board.flatten_board();
-            //println!("Input board{:?}", input_board);
-            //test_board.display_board(done, &winner);
-            get_next_move(&mut test_board, debug);
-            let output_board = test_board.flatten_board();
-            //println!("Output board{:?}", output_board);
-            winner = check_status(&test_board);
-            done = test_board.full();
-            //test_board.display_board(done, &winner);
+            let input_board = train_board.flatten_board();
+            get_next_move(&mut train_board, false);
+            let output_board = train_board.flatten_board();
+            winner = check_status(&train_board);
+            done = train_board.full();
 
             // Train on input and output boards
-            if test_board.computer_piece == Piece::X {
+            //if test_board.computer_piece == Piece::X { // Activate this to only train on one Piece
                 back_prop(&input_board, &output_board, &mut w_in, &mut w_out, alpha);
-            }
+            //}
+            // Display loss for last training round
+            let out = forward(&input_board, &w_in, &w_out);
+            let losss: f64 = loss(&output_board, &out);
+            print!(" {:.2}", losss);
             if round >= rounds {
-                let out = forward(&input_board, &w_in, &w_out);
-                let losss: f64 = loss(&output_board, &out);
-                print!(" {:.2}", losss);
+                // Add last round as a perfect play round
+                perfect_play.push(output_board);
             }
 
             if done || matches!(winner, Piece::O | Piece::X) { break };
-            test_board.computer_piece = test_board.computer_piece.get_other_piece();
-            //std::thread::sleep(sleep_duration);
+            train_board.computer_piece = train_board.computer_piece.get_other_piece();
         } 
     } 
     println!("");
-
 
     //
     // LET TRAINED NEURAL NET PLAY AGAINS TREE SEARCH GAME LOGIC
     //
 
     let mut test_board = Board {
-        positions : [[Piece::None,Piece::None,Piece::None],
-                [Piece::None,Piece::None,Piece::None],
-                [Piece::None,Piece::None,Piece::None]],
+        positions : [
+            [Piece::None,Piece::None,Piece::None],
+            [Piece::None,Piece::None,Piece::None],
+            [Piece::None,Piece::None,Piece::None]],
         score : 0,
         computer_piece : Piece::X,
     };
     let mut done = false;
     let mut winner = Piece::None;
 
-    for _ in 0..2 {
+    // Reinit train board again for use to display
+    // training play
+    train_board = Board {
+        positions : [
+            [Piece::None,Piece::None,Piece::None],
+            [Piece::None,Piece::None,Piece::None],
+            [Piece::None,Piece::None,Piece::None]],
+        score : 0,                
+        computer_piece : Piece::X,
+    };
+    for turn in (0..9).step_by(2) {
+
+        //
+        // Neural net play
+        //
+        println!("Neural net move\n**************************");
         let input_board = test_board.flatten_board();
-        println!("Input board{:?}", input_board);
-        test_board.display_board(done, &winner);
-        let mut out: Vec<f64> = forward(&input_board, &w_in, &w_out);
+        println!("Input board: {:?}", input_board);
+        let out: Vec<f64> = forward(&input_board, &w_in, &w_out);
         let mut sorted_out: Vec<(f64,usize)> = out.into_iter().enumerate().map(|(i,v)| (v,i)).collect();
         sorted_out.sort_by(|a,b| b.0.partial_cmp(&a.0).unwrap());
-        println!("Sorted out: {:?}",sorted_out);
+        if debug {println!("Sorted out: {:?}",sorted_out);}
         let sorted_out_indexes: Vec<usize> = sorted_out.into_iter().map(|(_,i)| i).collect();
-        println!("Sorted indexes: {:?}", sorted_out_indexes);
-        //let index_max =  out.iter().enumerate().max_by(|(_, a), (_,b)| { a.partial_cmp(b).unwrap_or(Ordering::Less)}).map(|(index, _)| index).unwrap_or(0);
-        // TODO: SORT ON VALUE AND CHECK FROM BEGINNING WHICH IS VALID MOVE AND USE THAT
+        if debug {println!("Sorted indexes: {:?}", sorted_out_indexes);}
         let mut output_board = input_board;
-        output_board[4] = 1;
-        print!("Output board: {:?}", output_board);
+        let mut move_ok = false;
+        for index in sorted_out_indexes {
+            if output_board[index] == 0 {
+                output_board[index] = 1;
+                move_ok = true;
+                break;
+            }
+        }
+        if move_ok == false { panic!("No move available, should not be possible"); }       
+
+        println!("Output board: {:?}", output_board);
         test_board.reshape_board(output_board);
         test_board.display_board(done, &winner);
-        //print!("{:?} max: {:?}",out, index_max);
+
+        if rounds > 0 {
+            println!("Perfect played board {:?}", perfect_play[turn]);
+            train_board.reshape_board(perfect_play[turn]);
+            train_board.display_board(done, &winner);
+        }
+        if readkey {
+            println!("Press enter to continue...");
+            let _ = std::io::stdin().read_line(&mut readkey_input);
+        }
+
+        //
+        // Tree search play
+        //
+        println!("Tree search move\n***************************");
         test_board.computer_piece = test_board.computer_piece.get_other_piece();
         get_next_move(&mut test_board, debug);
         winner = check_status(&test_board);
