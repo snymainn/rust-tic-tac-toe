@@ -121,6 +121,13 @@ fn utils_check_status_function()
     winner = check_status(&test_board);
     assert!(matches!(winner, Piece::X));
 
+    test_board.positions = [[Piece::None,Piece::O,Piece::X],
+                            [Piece::None,Piece::O,Piece::X],
+                            [Piece::None,Piece::None,Piece::X]];
+
+    winner = check_status(&test_board);
+    assert!(matches!(winner, Piece::X));
+
     /*
         Oblique
      */
@@ -407,7 +414,7 @@ fn gaussian_matrix_test() {
 // add rounds to change from default five training rounds
 #[test]
 //#[ignore = "wip"] // use -- --ignored to cargo test to run this test
-fn neural_tic_tac_toe_train() {
+fn neural_tic_tac_toe_play() {
     use crate::neural_utils::*;   
     use std::env;
     use std::time::Duration;
@@ -562,13 +569,17 @@ fn neural_tic_tac_toe_train() {
 
         println!("Output board: {:?}", output_board);
         test_board.reshape_board(output_board);
+        winner = check_status(&test_board);
+        println!("Winner {}", winner.get_piece());
         test_board.display_board(done, &winner);
+        if done || matches!(winner, Piece::O | Piece::X) { break };
 
         if rounds > 0 {
             println!("Perfect played board {:?}", perfect_play[turn]);
             train_board.reshape_board(perfect_play[turn]);
             train_board.display_board(done, &winner);
         }
+
         if readkey {
             println!("Press enter to continue...");
             let _ = std::io::stdin().read_line(&mut readkey_input);
@@ -583,11 +594,10 @@ fn neural_tic_tac_toe_train() {
         winner = check_status(&test_board);
         done = test_board.full();
         test_board.display_board(done, &winner);
-
-
         if done || matches!(winner, Piece::O | Piece::X) { break };
         test_board.computer_piece = test_board.computer_piece.get_other_piece();
         std::thread::sleep(sleep_duration);
-    } 
+    }
+    assert!(matches!(winner, Piece::None)); // No winners
 
 }

@@ -130,7 +130,7 @@ pub fn check_status(board: &Board) -> Piece {
             return row[0].clone();
         }
     }
-    for x in 0..2 {
+    for x in 0..=2 {
         if matches!(board.positions[0][x], Piece::O | Piece::X) &&
             board.positions[0][x].get_piece() == board.positions[1][x].get_piece() &&
             board.positions[1][x].get_piece() == board.positions[2][x].get_piece() {
