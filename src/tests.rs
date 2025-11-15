@@ -1,3 +1,4 @@
+
 use crate::neural_utils::TicTacToeNeuralNet;
 
 #[cfg(test)]
@@ -502,7 +503,7 @@ fn neural_tic_tac_toe_play() {
 
             // Train on input and output boards
             //if test_board.computer_piece == Piece::X { // Activate this to only train on one Piece
-                back_prop(&input_board, &output_board, &mut w_in, &mut w_out, alpha);
+            back_prop(&input_board, &output_board, &mut w_in, &mut w_out, alpha);
             //}
             // Display loss for last training round
             let out = forward(&input_board, &w_in, &w_out);
@@ -654,8 +655,64 @@ fn select_option_test() {
 #[test]
 fn neural_net_play_object_oriented() {
 
-    let neural_play = TicTacToeNeuralNet::train();
-    neural_play.print_matrix(&neural_play.w_in);
-    neural_play.print_matrix(&neural_play.w_out);
+    let neural_play = TicTacToeNeuralNet::train(5);
+    //neural_play.print_matrix(&neural_play.w_in);
+    //neural_play.print_matrix(&neural_play.w_out);
+
+        let mut test_board = Board {
+        positions : [
+            [Piece::None,Piece::None,Piece::None],
+            [Piece::None,Piece::None,Piece::None],
+            [Piece::None,Piece::None,Piece::None]],
+        score : 0,
+        computer_piece : Piece::X,
+    };
+    let mut done = false;
+    let mut winner = Piece::None;
+
+    for _ in (0..9).step_by(2) {
+
+        //
+        // Neural net play
+        //
+        println!("Neural net move\n**************************");
+        let input_board = test_board.flatten_board();
+        println!("Input board: {:?}", input_board);
+        let out: Vec<f64> = neural_play.forward(&input_board);
+        let mut sorted_out: Vec<(f64,usize)> = out.into_iter().enumerate().map(|(i,v)| (v,i)).collect();
+        sorted_out.sort_by(|a,b| b.0.partial_cmp(&a.0).unwrap());
+        let sorted_out_indexes: Vec<usize> = sorted_out.into_iter().map(|(_,i)| i).collect();
+        let mut output_board = input_board;
+        let mut move_ok = false;
+        for index in sorted_out_indexes {
+            if output_board[index] == 0 {
+                output_board[index] = 1;
+                move_ok = true;
+                break;
+            }
+        }
+        if move_ok == false { panic!("No move available, should not be possible"); }       
+
+        println!("Output board: {:?}", output_board);
+        test_board.reshape_board(output_board);
+        winner = check_status(&test_board);
+        println!("Winner {}", winner.get_piece());
+        test_board.display_board(done, &winner);
+        if done || matches!(winner, Piece::O | Piece::X) { break };
+
+        //
+        // Tree search play
+        //
+        println!("Tree search move\n***************************");
+        test_board.computer_piece = test_board.computer_piece.get_other_piece();
+        get_next_move(&mut test_board, false);
+        winner = check_status(&test_board);
+        done = test_board.full();
+        test_board.display_board(done, &winner);
+        if done || matches!(winner, Piece::O | Piece::X) { break };
+        test_board.computer_piece = test_board.computer_piece.get_other_piece();
+    }
+    assert!(matches!(winner, Piece::None)); // No winners
+
     
 }
