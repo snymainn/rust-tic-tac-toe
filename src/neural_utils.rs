@@ -2,6 +2,77 @@ use std::process::exit;
 use rand::thread_rng;
 use rand_distr::{Normal, Distribution};
 
+pub struct TicTacToeNeuralNet {
+    pub w_in: Vec<[f64; 9]>,
+    pub w_out: Vec<[f64; 15]>
+}
+
+impl TicTacToeNeuralNet {    
+    pub fn train() -> Self {
+        let mut net = Self {
+            w_in : vec![[0.0; 9]; 15],
+            w_out : vec![[0.0; 15]; 9]
+        };
+        net.gaussian_matrix();
+        net
+    }
+
+    /*
+    Return a matrix of dimension X x Y with numbers
+    in a gaussian distribution around 0 with standard deviation of 1
+    Limit it to -2 to +2, i.e. generate a new number if outside
+    */
+    #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
+    fn gaussian_matrix(&mut self)
+    {
+        let mut rng = thread_rng();
+        
+        // Define a gaussian distribution around zero with stddev of 1
+        let normal_dist = Normal::new(0.0, 1.0).unwrap();
+        
+        for row in 0..9 {
+            for column in 0..15 {
+                for matrix in 0..2 {
+                // Generate a random number
+                let mut random_number: f64;
+                let mut iterations = 0;
+                loop {
+                    iterations += 1;
+                    random_number = normal_dist.sample(&mut rng);
+                    if (random_number < 2.0 && random_number > -2.0 && random_number != 0.0)|| iterations > 10 {
+                        break;
+                    }
+                }
+                if matrix == 0
+                {
+                    self.w_out[row as usize][column as usize] = random_number;
+                } else {
+                    self.w_in[column as usize][row as usize] = random_number;
+                }
+                }
+            }
+        }
+    }
+
+    pub fn print_matrix<R>(&self, matrix: &[R])
+    where 
+        R : AsRef<[f64]>,
+     {
+        let cols = matrix[0].as_ref().len();
+        print!("          ");
+        for x in 0..cols {
+            print!("col: {:2}  ", x+1);
+        }
+        println!();
+        for (y, row) in matrix.iter().enumerate() {
+            print!("row {:2} : ", y+1);
+            for value in row.as_ref() {
+                print!("{:8.5} ", value);
+            }
+            println!();
+        }
+    }
+}
 /*
     Transform any scalar value to something between 0 and 1
     Normally the input here will be scalar value that is the

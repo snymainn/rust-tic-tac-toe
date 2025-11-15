@@ -1,3 +1,5 @@
+use crate::neural_utils::TicTacToeNeuralNet;
+
 #[cfg(test)]
 use super::*;
 
@@ -647,8 +649,13 @@ fn select_option_test() {
     let response = 
         select_option(&vec![("T", Some(ComputerPlayerType::TreeSearch)), ("N", Some(ComputerPlayerType::Neural))], keyboard_reader);
     assert_eq!(response, Some(ComputerPlayerType::Neural));
+}
 
+#[test]
+fn neural_net_play_object_oriented() {
 
+    let neural_play = TicTacToeNeuralNet::train();
+    neural_play.print_matrix(&neural_play.w_in);
+    neural_play.print_matrix(&neural_play.w_out);
     
-
 }
