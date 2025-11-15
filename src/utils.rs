@@ -1,4 +1,4 @@
-use std::io;
+use std::io::{self, BufRead};
 use crate::data::*;
 
 pub fn get_input(board: &Board) -> Position {
@@ -178,6 +178,7 @@ pub fn check_blocker(board: &Board, y: usize, x: usize) -> bool {
 /// 
 //#[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
 #[cfg_attr(test,allow(dead_code))]
+#[cfg_attr(not(test),allow(dead_code))]
 pub fn print_matrix(matrix: &[&mut[f64]]) {
         print!("          ");
         for (x, _) in matrix[0].iter().enumerate() {
@@ -191,4 +192,42 @@ pub fn print_matrix(matrix: &[&mut[f64]]) {
             }
             println!();
         }
+}
+
+#[cfg_attr(not(test),allow(dead_code))]
+pub fn select_option<T,R>(options: &Vec<(&str, Option<T>)>, mut reader: R) -> Option<T> 
+where 
+T: Clone,
+R: BufRead,
+{
+
+    let vars: Vec<&str> = options.iter().map(|(s, _)| *s).collect();
+    let vars = vars.join(", ");
+    
+    let result = loop {
+        println!("Select from {} : ", vars);
+
+        let mut response = String::new();
+    
+        match reader.read_line(&mut response) {
+            Ok(0) => {
+                break None;
+            }
+            Ok(_) => {
+                let trimmed_response = response.trim().to_lowercase();                
+                for tuple in options {
+                    println!("{}", tuple.0);
+                    if trimmed_response.as_str() == tuple.0.to_lowercase() {
+                        return tuple.1.clone();        
+                    }
+                }
+            }
+            Err(e) => {
+                eprint!("Error reading keyboard input: {}", e);
+                break None;
+            }
+        }           
+        println!("Invalid selection, try again!");
+    };
+    result
 }

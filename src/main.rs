@@ -17,32 +17,12 @@ fn main() {
 
     let my_piece: Piece;
 
-    loop {
-        println!("Select {} or {} : ", Piece::O.get_piece(), Piece::X.get_piece());
-
-        let mut response = String::new();
+    let response = 
+        select_option(&vec![("X", Some(Piece::X)), ("O", Some(Piece::O))], 
+        io::stdin().lock());
+    my_piece = response.expect("Expected response of type Piece");
     
-        io::stdin()
-            .read_line(&mut response)
-            .expect("Failed to read selection"); 
-
-
-        match response.trim().to_lowercase().as_str() {
-            "x" => {
-                my_piece = Piece::X;
-                break;
-            },
-            "o" => {
-                my_piece = Piece::O;
-                break;
-            },
-            _ => {
-                println!("Invalid selection, try again!");
-            }
-        } 
-    }
-    
-    println!("Selected player {}", my_piece.get_piece());
+    println!("Selected player {:?}", my_piece);
 
     let mut board = Board {
         positions : [[Piece::None,Piece::None,Piece::None],

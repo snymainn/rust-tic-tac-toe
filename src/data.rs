@@ -7,6 +7,9 @@ pub struct Position {
 #[derive(Debug,Clone,PartialEq)]
 pub enum Piece { None, X, O}
 
+#[derive(Debug,Clone,PartialEq)]
+pub enum ComputerPlayerType { TreeSearch, Neural }
+
 impl Piece {
     pub fn get_piece(&self) -> String {
         match self {

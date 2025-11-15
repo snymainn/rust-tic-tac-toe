@@ -601,3 +601,54 @@ fn neural_tic_tac_toe_play() {
     assert!(matches!(winner, Piece::None)); // No winners
 
 }
+
+#[test]
+fn select_option_test() {
+    use std::io::Cursor;
+
+    let mock_input = "x\n";
+    let keyboard_reader = Cursor::new(mock_input);
+
+    let response = 
+        select_option(&vec![("X", Some(Piece::X)), ("O", Some(Piece::O))], keyboard_reader);
+    assert_eq!(response, Some(Piece::X));
+
+    let mock_input = "r\n";
+    let keyboard_reader = Cursor::new(mock_input);
+
+    let response = 
+        select_option(&vec![("X", Some(Piece::X)), ("O", Some(Piece::O))], keyboard_reader);
+    assert_eq!(response, None);
+
+    let mock_input = "\n";
+    let keyboard_reader = Cursor::new(mock_input);
+
+    let response = 
+        select_option(&vec![("X", Some(Piece::X)), ("O", Some(Piece::O))], keyboard_reader);
+    assert_eq!(response, None);
+    
+    let mock_input = "O\n";
+    let keyboard_reader = Cursor::new(mock_input);
+
+    let response = 
+        select_option(&vec![("X", Some(Piece::X)), ("O", Some(Piece::O))], keyboard_reader);
+    assert_eq!(response, Some(Piece::O));
+
+    let mock_input = "T\n";
+    let keyboard_reader = Cursor::new(mock_input);
+
+    let response = 
+        select_option(&vec![("T", Some(ComputerPlayerType::TreeSearch)), ("N", Some(ComputerPlayerType::Neural))], keyboard_reader);
+    assert_eq!(response, Some(ComputerPlayerType::TreeSearch));
+
+    let mock_input = "N\n";
+    let keyboard_reader = Cursor::new(mock_input);
+
+    let response = 
+        select_option(&vec![("T", Some(ComputerPlayerType::TreeSearch)), ("N", Some(ComputerPlayerType::Neural))], keyboard_reader);
+    assert_eq!(response, Some(ComputerPlayerType::Neural));
+
+
+    
+
+}
