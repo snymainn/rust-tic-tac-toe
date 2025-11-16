@@ -417,7 +417,7 @@ fn gaussian_matrix_test() {
 // add rounds to change from default five training rounds
 #[test]
 //#[ignore = "wip"] // use -- --ignored to cargo test to run this test
-fn neural_tic_tac_toe_play() {
+fn neural_func_utils() {
     use crate::neural_utils::*;   
     use std::env;
     use std::time::Duration;
@@ -439,6 +439,7 @@ fn neural_tic_tac_toe_play() {
     let mut readkey = false;
     if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("readkey")) {
         readkey = true;
+        debug = true;
     }
     let mut rounds: i32 = 5;
     if let Some(round_input) = args.iter().find(|&&ref a| a.starts_with("rounds")) {
@@ -466,7 +467,7 @@ fn neural_tic_tac_toe_play() {
     let mut w_out: Vec<Vec<f64>> = vec![vec![0.0; columns]; rows]; 
     let mut w_out: Vec<&mut [f64]> = w_out.iter_mut().map(|r| r.as_mut_slice()).collect();
     gaussian_matrix(columns as i8, rows as i8, &mut w_out);
-    if debug {print_matrix(&w_out);}
+    //if debug {print_matrix(&w_out);}
 
     // Generate W_In, input weigth matrix, number of rows(y) must be equal to input nodes = 9
     // Number of columns (x) must be equal to number of nodes in next level = 15
@@ -475,7 +476,7 @@ fn neural_tic_tac_toe_play() {
     let mut w_in: Vec<Vec<f64>> = vec![vec![0.0; columns]; rows]; // Init dynamic matrix
     let mut w_in: Vec<&mut [f64]> = w_in.iter_mut().map(|r| r.as_mut_slice()).collect();
     gaussian_matrix(columns as i8, rows as i8, &mut w_in);
-    if debug {print_matrix(&w_in);}
+    //if debug {print_matrix(&w_in);}
     
     //
     // TRAIN NEURAL NET WITH TREE SEARCH GAME LOGIC (SIMPLE DEPTH FIRST)
@@ -582,11 +583,6 @@ fn neural_tic_tac_toe_play() {
             train_board.display_board(done, &winner);
         }
 
-        if readkey {
-            println!("Press enter to continue...");
-            let _ = std::io::stdin().read_line(&mut readkey_input);
-        }
-
         //
         // Tree search play
         //
@@ -598,7 +594,14 @@ fn neural_tic_tac_toe_play() {
         if debug { test_board.display_board(done, &winner);}
         if done || matches!(winner, Piece::O | Piece::X) { break };
         test_board.computer_piece = test_board.computer_piece.get_other_piece();
-        if debug { std::thread::sleep(sleep_duration); }
+
+        if readkey && debug {
+            println!("Press enter to continue...");
+            let _ = std::io::stdin().read_line(&mut readkey_input);
+        } else {
+            if debug { std::thread::sleep(sleep_duration); }
+        }
+
     }
     assert!(matches!(winner, Piece::None)); // No winners
 
@@ -652,8 +655,24 @@ fn select_option_test() {
 }
 
 #[test]
-fn neural_net_play_object_oriented() {
+fn neural_struct_play() {
+    use std::env;
+    let mut readkey_input = String::new();
 
+    // Detect command line arguments after -- e.g. cargo test -- --nocapture
+    // Here --nocapture will be detected and thus a delay will be inserted so
+    // we can see the computer playing the game with itself as opponent
+    let args: Vec<String> = env::args().collect();
+ 
+    let mut debug = false;
+    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("debug")) {
+        debug = true;
+    }
+    let mut readkey = false;
+    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("readkey")) {
+        readkey = true;
+        debug = true;
+    }
     let neural_play = TicTacToeNeuralNet::train(5);
     //neural_play.print_matrix(&neural_play.w_in);
     //neural_play.print_matrix(&neural_play.w_out);
@@ -674,24 +693,27 @@ fn neural_net_play_object_oriented() {
         //
         // Neural net play
         //
-        println!("Neural net move\n**************************");
+        if debug { println!("Neural net move\n**************************"); }
         neural_play.forward_wrapped(&mut test_board);
         winner = check_status(&test_board);
-        println!("Winner {}", winner.get_piece());
-        test_board.display_board(done, &winner);
+        if debug { test_board.display_board(done, &winner); }
         if done || matches!(winner, Piece::O | Piece::X) { break };
 
         //
         // Tree search play
         //
-        println!("Tree search move\n***************************");
+        if debug { println!("Tree search move\n***************************"); }
         test_board.computer_piece = test_board.computer_piece.get_other_piece();
         get_next_move(&mut test_board, false);
         winner = check_status(&test_board);
         done = test_board.full();
-        test_board.display_board(done, &winner);
+        if debug { test_board.display_board(done, &winner); }
         if done || matches!(winner, Piece::O | Piece::X) { break };
         test_board.computer_piece = test_board.computer_piece.get_other_piece();
+        if readkey {
+            println!("Press enter to continue...");
+            let _ = std::io::stdin().read_line(&mut readkey_input);
+        }
     }
     assert!(matches!(winner, Piece::None)); // No winners
 
