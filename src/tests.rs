@@ -673,7 +673,19 @@ fn neural_struct_play() {
         readkey = true;
         debug = true;
     }
-    let neural_play = TicTacToeNeuralNet::train(5);
+    let mut rounds: u8 = 5;
+    if let Some(round_input) = args.iter().find(|&&ref a| a.starts_with("rounds")) {
+        let parts = round_input.split_once("=");
+        let num_str = match parts {
+            Some((_,value)) => value.trim(),
+            None => {
+                println!("Error: String {} does not contain =", round_input);
+                return;
+            }
+        };
+        rounds = num_str.parse().expect("Error: Value is not integer");
+    }
+    let neural_play = TicTacToeNeuralNet::train(rounds);
     //neural_play.print_matrix(&neural_play.w_in);
     //neural_play.print_matrix(&neural_play.w_out);
 
