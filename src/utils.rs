@@ -1,4 +1,4 @@
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Write};
 use crate::data::*;
 
 pub fn get_input(board: &Board) -> Position {
@@ -205,7 +205,8 @@ R: BufRead,
     let vars = vars.join(", ");
     
     let result = loop {
-        println!("Select from {} : ", vars);
+        print!("Select from {} : ", vars);
+        io::stdout().flush().ok();
 
         let mut response = String::new();
     
@@ -216,7 +217,6 @@ R: BufRead,
             Ok(_) => {
                 let trimmed_response = response.trim().to_lowercase();                
                 for tuple in options {
-                    println!("{}", tuple.0);
                     if trimmed_response.as_str() == tuple.0.to_lowercase() {
                         return tuple.1.clone();        
                     }

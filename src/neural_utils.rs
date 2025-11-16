@@ -11,7 +11,7 @@ use rand_distr::{Normal, Distribution};
     Input: Any number
     Return: Change input vector where each entry is between 0 and 1
 */  
-fn sigmoid(vector: &mut [f64]) {
+pub fn sigmoid(vector: &mut [f64]) {
 
     for (_, value) in vector.iter_mut().enumerate() {
         *value = 1.0/(1.0 + (*value * -1.0).exp())
@@ -21,7 +21,7 @@ fn sigmoid(vector: &mut [f64]) {
 /*
     Calculate scalar product between two vectors
 */
-fn scalar_dot_product(input_vector: &[f64], weigth_vector: &[f64]) -> f64 {
+pub fn scalar_dot_product(input_vector: &[f64], weigth_vector: &[f64]) -> f64 {
     // Exit with panic if vector does not have same length
     // Assume this is caused by programming error
     assert_eq!(input_vector.len(), weigth_vector.len(), "Vectors must have the same length for scalar dot product.");

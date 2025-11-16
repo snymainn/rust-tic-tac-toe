@@ -1,3 +1,5 @@
+#[cfg(test)]
+use crate::neural_struct::TicTacToeNeuralNet;
 
 #[cfg(test)]
 use super::*;
