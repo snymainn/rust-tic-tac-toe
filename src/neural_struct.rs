@@ -39,8 +39,8 @@ impl TicTacToeNeuralNet {
                 done = train_board.full();
 
                 // Train on input and output boards
-                //if test_board.computer_piece == Piece::X { // Activate this to only train on one Piece
-                net.back_prop(&input_board, &output_board, 0.1);
+                //if train_board.computer_piece == Piece::X { // Activate this to only train on one Piece
+                    net.back_prop(&input_board, &output_board, 0.1);
                 //}
                 // Display loss for last training round
                 let out = net.forward(&input_board);

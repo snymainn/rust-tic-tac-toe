@@ -677,7 +677,7 @@ fn neural_struct_play() {
     //neural_play.print_matrix(&neural_play.w_in);
     //neural_play.print_matrix(&neural_play.w_out);
 
-        let mut test_board = Board {
+    let mut test_board = Board {
         positions : [
             [Piece::None,Piece::None,Piece::None],
             [Piece::None,Piece::None,Piece::None],
