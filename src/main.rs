@@ -3,6 +3,7 @@ mod data;
 mod utils;
 mod neural_utils;
 mod neural_data;
+mod neural_struct;
 
 mod tests;
 
