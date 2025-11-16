@@ -4,6 +4,9 @@ pub struct Position {
     pub col: usize,
 }
 
+// Debug trait is a simple method to get print
+// to output a string form of the enum definition
+// A better way is to implement Display trait
 #[derive(Debug,Clone,PartialEq)]
 pub enum Piece { None, X, O}
 

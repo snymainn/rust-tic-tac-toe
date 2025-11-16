@@ -548,9 +548,9 @@ fn neural_tic_tac_toe_play() {
         //
         // Neural net play
         //
-        println!("Neural net move\n**************************");
+        if debug { println!("Neural net move\n**************************"); }
         let input_board = test_board.flatten_board();
-        println!("Input board: {:?}", input_board);
+        if debug { println!("Input board: {:?}", input_board); }
         let out: Vec<f64> = forward(&input_board, &w_in, &w_out);
         let mut sorted_out: Vec<(f64,usize)> = out.into_iter().enumerate().map(|(i,v)| (v,i)).collect();
         sorted_out.sort_by(|a,b| b.0.partial_cmp(&a.0).unwrap());
@@ -568,14 +568,13 @@ fn neural_tic_tac_toe_play() {
         }
         if move_ok == false { panic!("No move available, should not be possible"); }       
 
-        println!("Output board: {:?}", output_board);
+        if debug { println!("Output board: {:?}", output_board); }
         test_board.reshape_board(output_board);
         winner = check_status(&test_board);
-        println!("Winner {}", winner.get_piece());
-        test_board.display_board(done, &winner);
+        if debug { test_board.display_board(done, &winner); }
         if done || matches!(winner, Piece::O | Piece::X) { break };
 
-        if rounds > 0 {
+        if rounds > 0 && debug {
             println!("Perfect played board {:?}", perfect_play[turn]);
             train_board.reshape_board(perfect_play[turn]);
             train_board.display_board(done, &winner);
@@ -589,15 +588,15 @@ fn neural_tic_tac_toe_play() {
         //
         // Tree search play
         //
-        println!("Tree search move\n***************************");
+        if debug { println!("Tree search move\n***************************"); }
         test_board.computer_piece = test_board.computer_piece.get_other_piece();
-        get_next_move(&mut test_board, debug);
+        get_next_move(&mut test_board, false);
         winner = check_status(&test_board);
         done = test_board.full();
-        test_board.display_board(done, &winner);
+        if debug { test_board.display_board(done, &winner);}
         if done || matches!(winner, Piece::O | Piece::X) { break };
         test_board.computer_piece = test_board.computer_piece.get_other_piece();
-        std::thread::sleep(sleep_duration);
+        if debug { std::thread::sleep(sleep_duration); }
     }
     assert!(matches!(winner, Piece::None)); // No winners
 
