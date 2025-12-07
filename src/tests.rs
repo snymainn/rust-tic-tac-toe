@@ -51,8 +51,12 @@ fn flatten_board_function()
         score : 0,
         computer_piece : Piece::X,
     };
-    let expected_result = [0, 0, 0, 1, 1, 1, 0, 0, -1];
-    assert_eq!(test_board.flatten_board(), expected_result);
+    let expected_result= [0, 0, 0, 1, 1, 1, 0, 0, -1];
+    assert_eq!(expected_result, test_board.flatten_board(Some(&test_board.computer_piece)));
+
+    let reverse_expected_result: Vec<i8> = expected_result.iter().map(|x| x*-1).collect();
+    assert_eq!(reverse_expected_result, test_board.flatten_board(Some(&test_board.computer_piece.get_other_piece())));
+
 }
 
 
@@ -76,7 +80,7 @@ fn reshape_board_function()
         score : 0,
         computer_piece : Piece::X,
     };
-    input_board.reshape_board(input_vector);
+    input_board.reshape_board(input_vector, None);
     assert_eq!(input_board, expected_board);
 }
 
@@ -487,7 +491,7 @@ fn neural_func_utils() {
         print!("\nTraining round {}, =>", round);
         train_board = Board {
             positions : [[Piece::None,Piece::None,Piece::None],
-                        [Piece::None,Piece::None,Piece::None],
+                        [Piece::None,Piece::X,Piece::None],
                         [Piece::None,Piece::None,Piece::None]],
             score : 0,                
             computer_piece : Piece::X,
@@ -495,17 +499,30 @@ fn neural_func_utils() {
         let mut done : bool;
         let mut winner : Piece;
         print!(" loss : ");
+        
+        // Train first obvious move into weigths
+        let mut input_board = [0;9];
+        let mut output_board = train_board.flatten_board(None);
+        back_prop(&input_board, &output_board, &mut w_in, &mut w_out, alpha);        
+        back_prop(&input_board, &output_board, &mut w_in, &mut w_out, alpha);
+        back_prop(&input_board, &output_board, &mut w_in, &mut w_out, alpha);        
+        back_prop(&input_board, &output_board, &mut w_in, &mut w_out, alpha);
+        if round >= rounds {
+            perfect_play.push(output_board);
+        }
+        
+        train_board.computer_piece = train_board.computer_piece.get_other_piece();
         loop {
-            let input_board = train_board.flatten_board();
+            input_board = train_board.flatten_board(Some(&Piece::X));
             get_next_move(&mut train_board, false);
-            let output_board = train_board.flatten_board();
+            output_board = train_board.flatten_board(Some(&Piece::X));
             winner = check_status(&train_board);
             done = train_board.full();
 
             // Train on input and output boards
-            //if test_board.computer_piece == Piece::X { // Activate this to only train on one Piece
-            back_prop(&input_board, &output_board, &mut w_in, &mut w_out, alpha);
-            //}
+            if train_board.computer_piece == Piece::X { // Activate this to only train on one Piece
+                back_prop(&input_board, &output_board, &mut w_in, &mut w_out, alpha);
+            }
             // Display loss for last training round
             let out = forward(&input_board, &w_in, &w_out);
             let losss: f64 = loss(&output_board, &out);
@@ -544,7 +561,7 @@ fn neural_func_utils() {
             [Piece::None,Piece::None,Piece::None],
             [Piece::None,Piece::None,Piece::None]],
         score : 0,                
-        computer_piece : Piece::X,
+        computer_piece : Piece::O,
     };
     for turn in (0..9).step_by(2) {
 
@@ -552,7 +569,7 @@ fn neural_func_utils() {
         // Neural net play
         //
         if debug { println!("Neural net move\n**************************"); }
-        let input_board = test_board.flatten_board();
+        let input_board = test_board.flatten_board(Some(&Piece::X));
         if debug { println!("Input board: {:?}", input_board); }
         let out: Vec<f64> = forward(&input_board, &w_in, &w_out);
         let mut sorted_out: Vec<(f64,usize)> = out.into_iter().enumerate().map(|(i,v)| (v,i)).collect();
@@ -572,14 +589,14 @@ fn neural_func_utils() {
         if move_ok == false { panic!("No move available, should not be possible"); }       
 
         if debug { println!("Output board: {:?}", output_board); }
-        test_board.reshape_board(output_board);
+        test_board.reshape_board(output_board, Some(&Piece::X));
         winner = check_status(&test_board);
         if debug { test_board.display_board(done, &winner); }
         if done || matches!(winner, Piece::O | Piece::X) { break };
 
         if rounds > 0 && debug {
             println!("Perfect played board {:?}", perfect_play[turn]);
-            train_board.reshape_board(perfect_play[turn]);
+            train_board.reshape_board(perfect_play[turn], Some(&Piece::X));
             train_board.display_board(done, &winner);
         }
 
@@ -685,7 +702,7 @@ fn neural_struct_play() {
         };
         rounds = num_str.parse().expect("Error: Value is not integer");
     }
-    let neural_play = TicTacToeNeuralNet::train(rounds);
+    let neural_play = TicTacToeNeuralNet::train_random(rounds);
     //neural_play.print_matrix(&neural_play.w_in);
     //neural_play.print_matrix(&neural_play.w_out);
 
