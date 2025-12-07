@@ -30,27 +30,20 @@ fn main() {
     println!("Selected computer player type :  {:?}\n", computer_player);
 
     let my_piece: Piece;
-    if computer_player == ComputerPlayerType::TreeSearch {
-        print!("Select which piece you want. ");
+    print!("Select which piece you want. ");
 
-        let response = select_option(
-            &vec![("X", Some(Piece::X)), ("O", Some(Piece::O))],
-            io::stdin().lock(),
-        );
-        my_piece = response.expect("Expected response of type Piece");
+    let response = select_option(
+        &vec![("X", Some(Piece::X)), ("O", Some(Piece::O))],
+        io::stdin().lock(),
+    );
+    my_piece = response.expect("Expected response of type Piece");
 
-        println!("Selected player {:?}", my_piece);
-
-    }
-    else {
-        // Neural net always must play as X since it is trained like this
-        my_piece = Piece::O; // I.e. human player must the be O
-    }
+    println!("Selected player {:?}", my_piece);
 
     let mut neural_player: Option<TicTacToeNeuralNet> = None;
     if computer_player == ComputerPlayerType::Neural {
         println!("\nTraining neural network");
-        neural_player = Some(TicTacToeNeuralNet::train(5,Piece::X));
+        neural_player = Some(TicTacToeNeuralNet::train(5,my_piece.get_other_piece()));
     }
 
     let mut board = Board {
@@ -66,17 +59,13 @@ fn main() {
     let mut winner: Piece = Piece::None;
     let mut human_player: bool = false;
 
-    // If Neural net player it must always start since it is
-    // trained like this.
-    if computer_player == ComputerPlayerType::TreeSearch {
-        let start: u8 = rand::thread_rng().gen_range(1..=2);
-        match start {
-            1 => println!("Computer starts!"),
-            _ => {
-                println!("You start!");
-                board.display_board(done, &winner);
-                human_player = true;
-            }
+    let start: u8 = rand::thread_rng().gen_range(1..=2);
+    match start {
+        1 => println!("Computer starts!"),
+        _ => {
+            println!("You start!");
+            board.display_board(done, &winner);
+            human_player = true;
         }
     }
 
