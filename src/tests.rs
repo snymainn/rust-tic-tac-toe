@@ -494,7 +494,7 @@ fn neural_func_utils() {
                         [Piece::None,Piece::X,Piece::None],
                         [Piece::None,Piece::None,Piece::None]],
             score : 0,                
-            computer_piece : Piece::X,
+            computer_piece : Piece::O,
         };
         let mut done : bool;
         let mut winner : Piece;
@@ -502,7 +502,7 @@ fn neural_func_utils() {
         
         // Train first obvious move into weigths
         let mut input_board = [0;9];
-        let mut output_board = train_board.flatten_board(None);
+        let mut output_board = train_board.flatten_board(Some(&Piece::X));
         back_prop(&input_board, &output_board, &mut w_in, &mut w_out, alpha);        
         back_prop(&input_board, &output_board, &mut w_in, &mut w_out, alpha);
         back_prop(&input_board, &output_board, &mut w_in, &mut w_out, alpha);        
@@ -511,7 +511,6 @@ fn neural_func_utils() {
             perfect_play.push(output_board);
         }
         
-        train_board.computer_piece = train_board.computer_piece.get_other_piece();
         loop {
             input_board = train_board.flatten_board(Some(&Piece::X));
             get_next_move(&mut train_board, false);
@@ -702,7 +701,7 @@ fn neural_struct_play() {
         };
         rounds = num_str.parse().expect("Error: Value is not integer");
     }
-    let neural_play = TicTacToeNeuralNet::train_random(rounds);
+    let neural_play = TicTacToeNeuralNet::train(rounds, Piece::X);
     //neural_play.print_matrix(&neural_play.w_in);
     //neural_play.print_matrix(&neural_play.w_out);
 
@@ -712,7 +711,7 @@ fn neural_struct_play() {
             [Piece::None,Piece::None,Piece::None],
             [Piece::None,Piece::None,Piece::None]],
         score : 0,
-        computer_piece : Piece::X,
+        computer_piece : Piece::O,
     };
     let mut done = false;
     let mut winner = Piece::None;
@@ -732,13 +731,11 @@ fn neural_struct_play() {
         // Tree search play
         //
         if debug { println!("Tree search move\n***************************"); }
-        test_board.computer_piece = test_board.computer_piece.get_other_piece();
         get_next_move(&mut test_board, false);
         winner = check_status(&test_board);
         done = test_board.full();
         if debug { test_board.display_board(done, &winner); }
         if done || matches!(winner, Piece::O | Piece::X) { break };
-        test_board.computer_piece = test_board.computer_piece.get_other_piece();
         if readkey {
             println!("Press enter to continue...");
             let _ = std::io::stdin().read_line(&mut readkey_input);

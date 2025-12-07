@@ -1,3 +1,4 @@
+use rand::Rng;
 use rand::thread_rng;
 use rand_distr::{Normal, Distribution};
 use crate::data::*;
@@ -6,24 +7,87 @@ use crate::neural_utils::*;
 
 pub struct TicTacToeNeuralNet {
     pub w_in: Vec<[f64; 15]>,
-    pub w_out: Vec<[f64; 9]>
+    pub w_out: Vec<[f64; 9]>,
+    pub piece_that_should_be_one: Piece
 }
 
 impl TicTacToeNeuralNet {    
-    pub fn train(rounds: u8) -> Self {
+    pub fn train(rounds: u8, piece_that_should_be_one: Piece) -> Self {
         let mut net = Self {
             w_in : vec![[0.0; 15]; 9],
-            w_out : vec![[0.0; 9]; 15]
+            w_out : vec![[0.0; 9]; 15],
+            piece_that_should_be_one : piece_that_should_be_one
         };
         net.gaussian_matrix();
         
         let mut train_board: Board;
+        let mut rng = rand::thread_rng(); 
 
         for round in 1..=rounds {
             print!("\nTraining round {}, =>", round);
             train_board = Board {
                 positions : [[Piece::None,Piece::None,Piece::None],
-                            [Piece::None,Piece::None,Piece::None],
+                            [Piece::None,Piece::X,Piece::None],
+                            [Piece::None,Piece::None,Piece::None]],
+                score : 0,                
+                computer_piece : Piece::O,
+            };
+            let mut done : bool;
+            let mut winner : Piece;
+            print!(" loss : ");
+
+            // Train with first obvious move
+            let mut input_board :[i8; 9] = [0; 9];
+            let mut output_board = train_board.flatten_board(Some(&Piece::X));
+            for _ in 0..3 {
+                net.back_prop(&input_board, &output_board, 0.1);
+            }
+
+            loop {
+                input_board = train_board.flatten_board(Some(&Piece::X));
+                get_next_move(&mut train_board, false);
+                output_board = train_board.flatten_board(Some(&Piece::X));
+                winner = check_status(&train_board);
+                done = train_board.full();
+
+                // Train on input and output boards
+                if train_board.computer_piece == Piece::X { // Activate this to only train on one Piece
+                    net.back_prop(&input_board, &output_board, 0.1);
+                }
+                // Display loss for last training round
+                let out = net.forward(&input_board);
+                let losss: f64 = loss(&output_board, &out);
+                print!(" {:.2}", losss);
+                //train_board.display_board(done, &winner);
+                if done || matches!(winner, Piece::O | Piece::X) { break };
+                train_board.computer_piece = train_board.computer_piece.get_other_piece();
+            } 
+        } 
+        println!("");
+
+        net
+    }
+
+
+    /// Train by playing random moves against tree search
+    /// Each time the random move can get one step further;
+    /// train on all moves in that round
+    pub fn train_random(rounds: u8, piece_that_should_be_one: Piece) -> Self {
+        let mut net = Self {
+            w_in : vec![[0.0; 15]; 9],
+            w_out : vec![[0.0; 9]; 15],
+            piece_that_should_be_one : piece_that_should_be_one
+        };
+        net.gaussian_matrix();
+        
+        let mut train_board: Board;
+        let mut rng = rand::thread_rng(); 
+
+        for round in 1..=rounds {
+            print!("\nTraining round {}, =>", round);
+            train_board = Board {
+                positions : [[Piece::None,Piece::None,Piece::None],
+                            [Piece::None,Piece::X,Piece::None],
                             [Piece::None,Piece::None,Piece::None]],
                 score : 0,                
                 computer_piece : Piece::X,
@@ -32,9 +96,21 @@ impl TicTacToeNeuralNet {
             let mut winner : Piece;
             print!(" loss : ");
             loop {
-                let input_board = train_board.flatten_board();
-                get_next_move(&mut train_board, false);
-                let output_board = train_board.flatten_board();
+                let mut input_board = train_board.flatten_board(None);
+                if input_board.iter().any(|&x| x != 0) {
+                    get_next_move(&mut train_board, false);
+                }
+                else {
+                    let mut index = round -1;
+                    if round > 9 {
+                        //index = rng.gen_range(0..=8);
+                        index = 4;
+                    } 
+                    input_board[index as usize] = 1;
+                    println!("{:?}", input_board);
+                    train_board.reshape_board(input_board, None);
+                }
+                let output_board = train_board.flatten_board(None);
                 winner = check_status(&train_board);
                 done = train_board.full();
 
@@ -46,7 +122,7 @@ impl TicTacToeNeuralNet {
                 let out = net.forward(&input_board);
                 let losss: f64 = loss(&output_board, &out);
                 print!(" {:.2}", losss);
-
+                //train_board.display_board(done, &winner);
                 if done || matches!(winner, Piece::O | Piece::X) { break };
                 train_board.computer_piece = train_board.computer_piece.get_other_piece();
             } 
@@ -241,7 +317,8 @@ impl TicTacToeNeuralNet {
     /// moving from main function
     pub fn forward_wrapped(&self, board: &mut Board) {
 
-        let mut flattened_board = board.flatten_board();
+        let mut flattened_board = 
+            board.flatten_board(Some(&self.piece_that_should_be_one));
         let out: Vec<f64> = self.forward(&flattened_board);
         let mut sorted_out: Vec<(f64,usize)> = out.into_iter().enumerate().map(|(i,v)| (v,i)).collect();
         sorted_out.sort_by(|a,b| b.0.partial_cmp(&a.0).unwrap());
@@ -256,6 +333,6 @@ impl TicTacToeNeuralNet {
         }
         if move_ok == false { panic!("No move available, should not be possible"); }       
 
-        board.reshape_board(flattened_board);
+        board.reshape_board(flattened_board, Some(&self.piece_that_should_be_one));
     }
 }

@@ -50,7 +50,7 @@ fn main() {
     let mut neural_player: Option<TicTacToeNeuralNet> = None;
     if computer_player == ComputerPlayerType::Neural {
         println!("\nTraining neural network");
-        neural_player = Some(TicTacToeNeuralNet::train(5));
+        neural_player = Some(TicTacToeNeuralNet::train(5,Piece::X));
     }
 
     let mut board = Board {
