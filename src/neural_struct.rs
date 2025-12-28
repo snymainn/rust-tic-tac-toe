@@ -1,4 +1,3 @@
-use rand::Rng;
 use rand::thread_rng;
 use rand_distr::{Normal, Distribution};
 use crate::data::*;
@@ -21,7 +20,6 @@ impl TicTacToeNeuralNet {
         net.gaussian_matrix();
         
         let mut train_board: Board;
-        let mut rng = rand::thread_rng(); 
 
         for round in 1..=rounds {
             print!("\nTraining round {}, =>", round);
@@ -68,11 +66,11 @@ impl TicTacToeNeuralNet {
         net
     }
 
-
-    /// Train by playing random moves against tree search
-    /// Each time the random move can get one step further;
-    /// train on all moves in that round
-    pub fn train_random(rounds: u8, piece_that_should_be_one: Piece) -> Self {
+    /// Train by playing random moves. If a random move wins; use that series
+    /// with the winning piece as value 1 to train a neural network.
+    /// Stop when neural network can play draw against tree search. 
+    #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
+    pub fn train_random(rounds: u16, piece_that_should_be_one: Piece) -> Self {
         let mut net = Self {
             w_in : vec![[0.0; 15]; 9],
             w_out : vec![[0.0; 9]; 15],
@@ -81,51 +79,57 @@ impl TicTacToeNeuralNet {
         net.gaussian_matrix();
         
         let mut train_board: Board;
-        let mut rng = rand::thread_rng(); 
 
         for round in 1..=rounds {
             print!("\nTraining round {}, =>", round);
             train_board = Board {
                 positions : [[Piece::None,Piece::None,Piece::None],
-                            [Piece::None,Piece::X,Piece::None],
+                            [Piece::None,Piece::None,Piece::None],
                             [Piece::None,Piece::None,Piece::None]],
                 score : 0,                
                 computer_piece : Piece::X,
             };
-            let mut done : bool;
-            let mut winner : Piece;
+            let mut done : bool = false;
+            let mut winner : Piece = Piece::None;
             print!(" loss : ");
+            let mut x_moves: Vec<[i8; 9]> = vec![[0; 9]];
+            let mut o_moves: Vec<[i8; 9]> = vec![];
             loop {
-                let mut input_board = train_board.flatten_board(None);
-                if input_board.iter().any(|&x| x != 0) {
-                    get_next_move(&mut train_board, false);
-                }
-                else {
-                    let mut index = round -1;
-                    if round > 9 {
-                        //index = rng.gen_range(0..=8);
-                        index = 4;
-                    } 
-                    input_board[index as usize] = 1;
-                    println!("{:?}", input_board);
-                    train_board.reshape_board(input_board, None);
-                }
-                let output_board = train_board.flatten_board(None);
+                let index = train_board.get_random_move(Some(&Piece::X));
                 winner = check_status(&train_board);
                 done = train_board.full();
-
-                // Train on input and output boards
-                //if train_board.computer_piece == Piece::X { // Activate this to only train on one Piece
-                    net.back_prop(&input_board, &output_board, 0.1);
+                train_board.display_board(done, &winner);
+                //if train_board.computer_piece == Piece::X {
+                    x_moves.push(train_board.flatten_board(Some(&Piece::X)));
+                //} else {
+                    o_moves.push(train_board.flatten_board(Some(&Piece::O)));
                 //}
-                // Display loss for last training round
+
+                /*
+                net.back_prop(&input_board, &output_board, 0.1);
                 let out = net.forward(&input_board);
                 let losss: f64 = loss(&output_board, &out);
                 print!(" {:.2}", losss);
                 //train_board.display_board(done, &winner);
+                */
                 if done || matches!(winner, Piece::O | Piece::X) { break };
                 train_board.computer_piece = train_board.computer_piece.get_other_piece();
-            } 
+            }
+            //println!("{} : {:?}", x_moves.len(), x_moves);
+            //println!("{} : {:?}", o_moves.len(), o_moves);
+            let winner_moves = match winner {
+                Piece::O => o_moves,
+                Piece::X => x_moves,
+                Piece::None => vec![]
+            }; 
+            println!("{} : {:?}", winner_moves.len(), winner_moves);
+            for index in (0..winner_moves.len()).step_by(2) {
+                println!("Using index : {} and {}", index, index +1);
+                net.back_prop(&winner_moves[index], &winner_moves[index+1], index as f64/10.0);
+                let out = net.forward(&winner_moves[index]);
+                let losss: f64 = loss(&winner_moves[index+1], &out);
+                print!(" {:.2}", losss);
+            }
         } 
         println!("");
 

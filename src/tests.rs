@@ -1,3 +1,5 @@
+//use rand_distr::Exp1;
+
 #[cfg(test)]
 use crate::neural_struct::TicTacToeNeuralNet;
 
@@ -84,7 +86,100 @@ fn reshape_board_function()
     assert_eq!(input_board, expected_board);
 }
 
+#[test]
+fn get_random_move_function()
+{
+    // Test one place left, should be filled with 1
+    // since computer player is X and one piece defined as X
+    let mut test_board = Board {
+        positions : [[Piece::X,Piece::O,Piece::O],
+                    [Piece::X,Piece::X,Piece::X],
+                    [Piece::X,Piece::None,Piece::O]],
+        score : 0,
+        computer_piece : Piece::X,
+    };
+    let expected_result= [1, -1, -1, 1, 1, 1, 1, 1, -1];
 
+    let index = test_board.get_random_move(Some(&Piece::X));
+    assert_eq!(index, Some(7));
+    let got_result = test_board.flatten_board(Some(&Piece::X));
+    assert_eq!(expected_result, got_result);
+    println!("Random move: filled index {} with 1 ", index.unwrap());
+    println!("Random move result array: {:?}", got_result);
+
+    // Test one place left, should be filled with -1
+    // since computer player is X and one piece defined as O
+    let mut test_board = Board {
+        positions : [[Piece::X,Piece::O,Piece::O],
+                    [Piece::X,Piece::X,Piece::X],
+                    [Piece::X,Piece::None,Piece::O]],
+        score : 0,
+        computer_piece : Piece::X,
+    };
+    let expected_result= [-1, 1, 1, -1, -1, -1, -1, -1, 1];
+
+    let index = test_board.get_random_move(Some(&Piece::O));
+    assert_eq!(index, Some(7));
+    let got_result = test_board.flatten_board(Some(&Piece::O));
+    assert_eq!(expected_result, got_result);
+    println!("Random move: filled index {} with 1 ", index.unwrap());
+    println!("Random move result array: {:?}", got_result);
+
+    // Test one place left, should be filled with -1
+    // since computer player is O and one piece defined as X
+    let mut test_board = Board {
+        positions : [[Piece::X,Piece::O,Piece::O],
+                    [Piece::X,Piece::X,Piece::X],
+                    [Piece::X,Piece::None,Piece::O]],
+        score : 0,
+        computer_piece : Piece::O,
+    };
+    let expected_result= [1, -1, -1, 1, 1, 1, 1, -1, -1];
+
+    let index = test_board.get_random_move(Some(&Piece::X));
+    assert_eq!(index, Some(7));
+    let got_result = test_board.flatten_board(Some(&Piece::X));
+    assert_eq!(expected_result, got_result);
+    println!("Random move: filled index {} with 1 ", index.unwrap());
+    println!("Random move result array: {:?}", got_result);
+
+    // Test no places left
+    // Should return None and board should not be changed
+    let mut test_board = Board {
+        positions : [[Piece::X,Piece::O,Piece::O],
+                    [Piece::X,Piece::X,Piece::X],
+                    [Piece::X,Piece::O,Piece::O]],
+        score : 0,
+        computer_piece : Piece::X,
+    };
+    let expected_result= test_board.flatten_board(Some(&Piece::X));
+
+    let index = test_board.get_random_move(Some(&Piece::X));
+    assert_eq!(index, None);
+    let got_result = test_board.flatten_board(Some(&Piece::X));
+    assert_eq!(expected_result, got_result);
+    println!("Random move: filled index {:?}", index);
+
+    // Test two places left, should be filled with -1
+    // since computer player is O and one piece defined as X
+    let mut test_board = Board {
+        positions : [[Piece::X,Piece::O,Piece::O],
+                    [Piece::X,Piece::None,Piece::X],
+                    [Piece::X,Piece::X,Piece::None]],
+        score : 0,
+        computer_piece : Piece::O,
+    };
+
+    let index = test_board.get_random_move(Some(&Piece::X));
+    assert!(matches!(index, Some(4) | Some(8)), "index {} was not Some(4) or Some(7)", index.unwrap_or_default());
+    let got_result = test_board.flatten_board(Some(&Piece::X));
+    let mut expected_result= [1, -1, -1, 1, 0, 1, 1, 1, 0];
+    expected_result[index.unwrap_or_default()] = -1;
+    assert_eq!(expected_result, got_result);
+    println!("Random move: filled index {} with 1 ", index.unwrap());
+    println!("Random move result array: {:?}", got_result);
+
+}
 
 #[test]
 fn utils_check_status_function()
@@ -414,11 +509,15 @@ fn gaussian_matrix_test() {
     }
 }
 
-// cargo test neural_tic_tac_toe_train -- --nocapture [debug] [readkey] [rounds=<training rounds>]
-// add debug to get more debug printout
-// --nocapture will add 1 sec delay between each move 
-// add readkey to stop and require enter to continue
-// add rounds to change from default five training rounds
+/// Train neural net using the utility functions, i.e the
+/// training logic is in the the test function. Then play the
+/// tree search algorithm with the trained network
+/// 
+/// cargo test neural_tic_tac_toe_train -- --nocapture [debug] [readkey] [rounds=<training rounds>]
+/// * add debug to get more debug printout
+/// * --nocapture will add 1 sec delay between each move 
+/// * add readkey to stop and require enter to continue
+/// * add rounds to change from default five training rounds
 #[test]
 //#[ignore = "wip"] // use -- --ignored to cargo test to run this test
 fn neural_func_utils() {
@@ -670,14 +769,20 @@ fn select_option_test() {
     assert_eq!(response, Some(ComputerPlayerType::Neural));
 }
 
+
+/// Train neural net using the train function in the TicTacToeNeural struct.
+/// Then play with the tree search algotrithm. 
+/// 
+/// Detect command line arguments after -- e.g. cargo test -- --nocapture
+/// * "readkey" will be detected and thus a wait for keypress will be 
+/// inserted so we can see the computer playing the game with itself as opponent
+/// * "debug" will print more debug. Debug is default when readkey is used
+/// * rounds=\<training rounds\>, default 5, increase number of training rounds 
 #[test]
 fn neural_struct_play() {
     use std::env;
     let mut readkey_input = String::new();
 
-    // Detect command line arguments after -- e.g. cargo test -- --nocapture
-    // Here --nocapture will be detected and thus a delay will be inserted so
-    // we can see the computer playing the game with itself as opponent
     let args: Vec<String> = env::args().collect();
  
     let mut debug = false;
@@ -744,4 +849,81 @@ fn neural_struct_play() {
     assert!(matches!(winner, Piece::None)); // No winners
 
     
+}
+
+/// Train neural net using the train_random function in the TicTacToeNeural struct.
+/// Then play with the tree search algotrithm. 
+/// 
+/// Detect command line arguments after -- e.g. cargo test -- --nocapture
+/// * "readkey" will be detected and thus a wait for keypress will be 
+/// inserted so we can see the computer playing the game with itself as opponent
+/// * "debug" will print more debug. Debug is default when readkey is used
+/// * rounds=\<training rounds\>, default 5, increase number of training rounds 
+#[test]
+fn neural_struct_random_train() {
+    use std::env;
+    let mut readkey_input = String::new();
+
+    let args: Vec<String> = env::args().collect();
+ 
+    let mut debug = false;
+    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("debug")) {
+        debug = true;
+    }
+    let mut readkey = false;
+    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("readkey")) {
+        readkey = true;
+        debug = true;
+    }
+    let mut rounds: u16 = 1;
+    if let Some(round_input) = args.iter().find(|&&ref a| a.starts_with("rounds")) {
+        let parts = round_input.split_once("=");
+        let num_str = match parts {
+            Some((_,value)) => value.trim(),
+            None => {
+                println!("Error: String {} does not contain =", round_input);
+                return;
+            }
+        };
+        rounds = num_str.parse().expect("Error: Value is not integer");
+    }
+    let neural_play = TicTacToeNeuralNet::train_random(rounds, Piece::X);
+
+        let mut test_board = Board {
+        positions : [
+            [Piece::None,Piece::None,Piece::None],
+            [Piece::None,Piece::None,Piece::None],
+            [Piece::None,Piece::None,Piece::None]],
+        score : 0,
+        computer_piece : Piece::O,
+    };
+    let mut done = false;
+    let mut winner = Piece::None;
+
+    for _ in (0..9).step_by(2) {
+
+        //
+        // Neural net play
+        //
+        if debug { println!("Neural net move\n**************************"); }
+        neural_play.forward_wrapped(&mut test_board);
+        winner = check_status(&test_board);
+        if debug { test_board.display_board(done, &winner); }
+        if done || matches!(winner, Piece::O | Piece::X) { break };
+
+        //
+        // Tree search play
+        //
+        if debug { println!("Tree search move\n***************************"); }
+        get_next_move(&mut test_board, false);
+        winner = check_status(&test_board);
+        done = test_board.full();
+        if debug { test_board.display_board(done, &winner); }
+        if done || matches!(winner, Piece::O | Piece::X) { break };
+        if readkey {
+            println!("Press enter to continue...");
+            let _ = std::io::stdin().read_line(&mut readkey_input);
+        }
+    }
+    assert!(matches!(winner, Piece::None)); // No winners
 }
