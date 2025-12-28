@@ -1,3 +1,4 @@
+use rand::Rng;
 
 pub struct Position {
     pub row: usize,
@@ -103,6 +104,30 @@ impl Board {
                     *col = Piece::None;
                 } 
             }
+        }
+    }
+
+    /// Get random move
+    /// Return Some(index) found or None
+    #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
+    pub fn get_random_move(&mut self, what_piece_one_should_be: Option<&Piece>) -> Option<usize> {
+        let one_piece = what_piece_one_should_be.clone().unwrap_or(&self.computer_piece);
+        let mut board_array = self.flatten_board(what_piece_one_should_be);
+        let open_indexses: Vec<usize> = board_array.iter().enumerate().filter_map(|(i, &v)| if v == 0 { Some(i) } else { None }).collect();
+        println!("{}", open_indexses.len());
+        let number_of_open_positions = open_indexses.len();
+        if number_of_open_positions > 0 {
+            let mut rng = rand::thread_rng(); 
+            let index = rng.gen_range(0..number_of_open_positions);
+            if self.computer_piece == *one_piece {
+                board_array[open_indexses[index]] = 1; 
+            } else {
+                board_array[open_indexses[index]] = -1;
+            }
+            self.reshape_board(board_array, what_piece_one_should_be);
+            return Some(open_indexses[index]);
+        } else {
+            return None;
         }
     }
 }
