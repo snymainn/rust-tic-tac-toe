@@ -76,6 +76,8 @@ impl TicTacToeNeuralNet {
             w_out : vec![[0.0; 9]; 15],
             piece_that_should_be_one : piece_that_should_be_one
         };
+        let mut readkey_input = String::new();
+
         net.gaussian_matrix();
         
         let mut train_board: Board;
@@ -87,33 +89,51 @@ impl TicTacToeNeuralNet {
                             [Piece::None,Piece::None,Piece::None],
                             [Piece::None,Piece::None,Piece::None]],
                 score : 0,                
-                computer_piece : Piece::X,
+                computer_piece : Piece::O,
             };
             let mut done : bool = false;
             let mut winner : Piece = Piece::None;
             print!(" loss : ");
-            let mut x_moves: Vec<[i8; 9]> = vec![[0; 9]];
-            let mut o_moves: Vec<[i8; 9]> = vec![];
+            let mut x_moves: Vec<[i8; 9]> = vec![]; // vec![[0; 9]];
+            let mut o_moves: Vec<[i8; 9]> = vec![[0; 9]]; // vec![];
             loop {
-                let index = train_board.get_random_move(Some(&Piece::X));
+                let _ = train_board.get_random_move(Some(&Piece::X));
                 winner = check_status(&train_board);
                 done = train_board.full();
                 train_board.display_board(done, &winner);
                 //if train_board.computer_piece == Piece::X {
+                // Push both to the move arrays since one must
+                // store the before and after boards for the training
                     x_moves.push(train_board.flatten_board(Some(&Piece::X)));
                 //} else {
+                    // O must be set to one here for the training to work on these boards, if used for training
                     o_moves.push(train_board.flatten_board(Some(&Piece::O)));
                 //}
 
-                /*
-                net.back_prop(&input_board, &output_board, 0.1);
-                let out = net.forward(&input_board);
-                let losss: f64 = loss(&output_board, &out);
-                print!(" {:.2}", losss);
-                //train_board.display_board(done, &winner);
-                */
+                println!("Press enter to continue... to neural move");
+                let _ = std::io::stdin().read_line(&mut readkey_input);
                 if done || matches!(winner, Piece::O | Piece::X) { break };
-                train_board.computer_piece = train_board.computer_piece.get_other_piece();
+
+                //net.back_prop(&input_board, &output_board, 0.1);
+                // Forward wrapper always uses TicTacToeNet struct piece_that_should_be_one
+                // variable to play with 
+                net.forward_wrapped(&mut train_board);
+                winner = check_status(&train_board);
+                done = train_board.full();
+                train_board.display_board(done, &winner);
+                    x_moves.push(train_board.flatten_board(Some(&Piece::X)));
+                //} else {
+                    // O must be set to one here for the training to work on these boards, if used for training
+                    o_moves.push(train_board.flatten_board(Some(&Piece::O)));
+
+                println!("Press enter to continue...to random move");
+                let _ = std::io::stdin().read_line(&mut readkey_input);
+
+                //let losss: f64 = loss(&output_board, &out);
+                //print!(" {:.2}", losss);
+                
+                if done || matches!(winner, Piece::O | Piece::X) { break };
+                //train_board.computer_piece = train_board.computer_piece.get_other_piece();
             }
             //println!("{} : {:?}", x_moves.len(), x_moves);
             //println!("{} : {:?}", o_moves.len(), o_moves);
@@ -124,11 +144,11 @@ impl TicTacToeNeuralNet {
             }; 
             println!("{} : {:?}", winner_moves.len(), winner_moves);
             for index in (0..winner_moves.len()).step_by(2) {
-                println!("Using index : {} and {}", index, index +1);
-                net.back_prop(&winner_moves[index], &winner_moves[index+1], index as f64/10.0);
+                print!("Using index : {} and {}", index, index +1);
+                net.back_prop(&winner_moves[index], &winner_moves[index+1], 0.1);
                 let out = net.forward(&winner_moves[index]);
                 let losss: f64 = loss(&winner_moves[index+1], &out);
-                print!(" {:.2}", losss);
+                println!(", loss: {:.2}", losss);
             }
         } 
         println!("");

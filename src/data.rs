@@ -114,7 +114,7 @@ impl Board {
         let one_piece = what_piece_one_should_be.clone().unwrap_or(&self.computer_piece);
         let mut board_array = self.flatten_board(what_piece_one_should_be);
         let open_indexses: Vec<usize> = board_array.iter().enumerate().filter_map(|(i, &v)| if v == 0 { Some(i) } else { None }).collect();
-        println!("{}", open_indexses.len());
+        //println!("{}", open_indexses.len());
         let number_of_open_positions = open_indexses.len();
         if number_of_open_positions > 0 {
             let mut rng = rand::thread_rng(); 
