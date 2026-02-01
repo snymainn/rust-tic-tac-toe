@@ -5,6 +5,11 @@ pub struct Position {
     pub col: usize,
 }
 
+pub struct DataToPlot {
+    pub data: Vec<f64>,
+    pub legend: String,
+}
+
 // Debug trait is a simple method to get print
 // to output a string form of the enum definition
 // A better way is to implement Display trait

@@ -875,7 +875,7 @@ fn neural_struct_random_train() {
         readkey = true;
         debug = true;
     }
-    let mut rounds: u16 = 1;
+    let mut rounds: u16 = 100;
     if let Some(round_input) = args.iter().find(|&&ref a| a.starts_with("rounds")) {
         let parts = round_input.split_once("=");
         let num_str = match parts {
@@ -889,7 +889,7 @@ fn neural_struct_random_train() {
     }
     let neural_play = TicTacToeNeuralNet::train_random(rounds, Piece::X);
 
-        let mut test_board = Board {
+    let mut test_board = Board {
         positions : [
             [Piece::None,Piece::None,Piece::None],
             [Piece::None,Piece::None,Piece::None],

@@ -1,4 +1,5 @@
 use rand::thread_rng;
+use rand_distr::num_traits::One;
 use rand_distr::{Normal, Distribution};
 use crate::data::*;
 use crate::utils::*;
@@ -20,6 +21,8 @@ impl TicTacToeNeuralNet {
         net.gaussian_matrix();
         
         let mut train_board: Board;
+
+        let mut loss_plot: DataToPlot = DataToPlot{ data : vec![], legend : "Loss".to_string()};
 
         for round in 1..=rounds {
             print!("\nTraining round {}, =>", round);
@@ -56,12 +59,14 @@ impl TicTacToeNeuralNet {
                 let out = net.forward(&input_board);
                 let losss: f64 = loss(&output_board, &out);
                 print!(" {:.2}", losss);
+                loss_plot.data.push(losss);
                 //train_board.display_board(done, &winner);
                 if done || matches!(winner, Piece::O | Piece::X) { break };
                 train_board.computer_piece = train_board.computer_piece.get_other_piece();
             } 
         } 
         println!("");
+        let _ = plot_loss(&[loss_plot], "Loss function of tree-search training");
 
         net
     }
@@ -76,83 +81,100 @@ impl TicTacToeNeuralNet {
             w_out : vec![[0.0; 9]; 15],
             piece_that_should_be_one : piece_that_should_be_one
         };
-        let mut readkey_input = String::new();
+        //let mut readkey_input = String::new();
 
         net.gaussian_matrix();
         
         let mut train_board: Board;
-
-        for round in 1..=rounds {
-            print!("\nTraining round {}, =>", round);
+        let mut blocker_losses: DataToPlot = DataToPlot{ data : vec![], legend : "blocker loss".to_string()};
+        let mut winner_losses: DataToPlot = DataToPlot{ data : vec![], legend : "winner loss".to_string()};
+        let mut neural_wins: DataToPlot = DataToPlot { data: vec![], legend: "neural wins".to_string() };
+        let mut random_wins: DataToPlot = DataToPlot { data: vec![], legend: "random wins".to_string() };
+        for _ in 1..=rounds {
             train_board = Board {
                 positions : [[Piece::None,Piece::None,Piece::None],
                             [Piece::None,Piece::None,Piece::None],
                             [Piece::None,Piece::None,Piece::None]],
                 score : 0,                
-                computer_piece : Piece::O,
+                computer_piece : Piece::O, // Random moves are Piece::O, which is mostly -1 below
             };
-            let mut done : bool = false;
-            let mut winner : Piece = Piece::None;
-            print!(" loss : ");
+            let mut done : bool; // = false;
+            let mut winner : Piece; // = Piece::None;
             let mut x_moves: Vec<[i8; 9]> = vec![]; // vec![[0; 9]];
             let mut o_moves: Vec<[i8; 9]> = vec![[0; 9]]; // vec![];
             loop {
+                // O playing
                 let _ = train_board.get_random_move(Some(&Piece::X));
                 winner = check_status(&train_board);
                 done = train_board.full();
-                train_board.display_board(done, &winner);
-                //if train_board.computer_piece == Piece::X {
+
                 // Push both to the move arrays since one must
                 // store the before and after boards for the training
-                    x_moves.push(train_board.flatten_board(Some(&Piece::X)));
-                //} else {
-                    // O must be set to one here for the training to work on these boards, if used for training
-                    o_moves.push(train_board.flatten_board(Some(&Piece::O)));
-                //}
+                // In case O wins the o_moves have O made to 1 so they can be used to train the network
+                x_moves.push(train_board.flatten_board(Some(&Piece::X)));
+                o_moves.push(train_board.flatten_board(Some(&Piece::O)));
 
-                println!("Press enter to continue... to neural move");
-                let _ = std::io::stdin().read_line(&mut readkey_input);
+                //println!("Press enter to continue... to neural move");
+                //let _ = std::io::stdin().read_line(&mut readkey_input);
                 if done || matches!(winner, Piece::O | Piece::X) { break };
 
                 //net.back_prop(&input_board, &output_board, 0.1);
-                // Forward wrapper always uses TicTacToeNet struct piece_that_should_be_one
-                // variable to play with 
+                // forward_wrapped always uses TicTacToeNet struct piece_that_should_be_one
+                // variable to play with which is set to X in the unit test function
+                // neural_struct_random_train() when initializing the struct
+                // X playing
                 net.forward_wrapped(&mut train_board);
                 winner = check_status(&train_board);
                 done = train_board.full();
-                train_board.display_board(done, &winner);
-                    x_moves.push(train_board.flatten_board(Some(&Piece::X)));
-                //} else {
-                    // O must be set to one here for the training to work on these boards, if used for training
-                    o_moves.push(train_board.flatten_board(Some(&Piece::O)));
+                //train_board.display_board(done, &winner);
+                x_moves.push(train_board.flatten_board(Some(&Piece::X)));
+                o_moves.push(train_board.flatten_board(Some(&Piece::O)));
 
-                println!("Press enter to continue...to random move");
-                let _ = std::io::stdin().read_line(&mut readkey_input);
+                //println!("Press enter to continue...to random move");
+                //let _ = std::io::stdin().read_line(&mut readkey_input);
 
-                //let losss: f64 = loss(&output_board, &out);
-                //print!(" {:.2}", losss);
-                
                 if done || matches!(winner, Piece::O | Piece::X) { break };
-                //train_board.computer_piece = train_board.computer_piece.get_other_piece();
+    
             }
-            //println!("{} : {:?}", x_moves.len(), x_moves);
-            //println!("{} : {:?}", o_moves.len(), o_moves);
             let winner_moves = match winner {
                 Piece::O => o_moves,
                 Piece::X => x_moves,
                 Piece::None => vec![]
             }; 
-            println!("{} : {:?}", winner_moves.len(), winner_moves);
-            for index in (0..winner_moves.len()).step_by(2) {
-                print!("Using index : {} and {}", index, index +1);
-                net.back_prop(&winner_moves[index], &winner_moves[index+1], 0.1);
-                let out = net.forward(&winner_moves[index]);
-                let losss: f64 = loss(&winner_moves[index+1], &out);
-                println!(", loss: {:.2}", losss);
-            }
-        } 
-        println!("");
 
+            // Make array that accumulate wins for each round
+            random_wins.data.push(random_wins.data.last().unwrap_or(&0.0) + {if winner == Piece::O {1.0} else {0.0}});
+            neural_wins.data.push(neural_wins.data.last().unwrap_or(&0.0) + {if winner == Piece::X {1.0} else {0.0}});
+
+            // Train with the winner moves, if O wins; -1 and 1 are switched
+            for index in (0..winner_moves.len()).step_by(2) {
+                let ones_before_move = winner_moves[index].iter().filter(|x| x.is_one()).count();
+                let ones_after_move = winner_moves[index+1].iter().filter(|x| x.is_one()).count();
+                // Assert that there are always one more 1 piece in the output node board
+                // than the input node board
+                assert!((ones_before_move + 1) == ones_after_move);
+                // Train weights
+                net.back_prop(&winner_moves[index], &winner_moves[index+1], 0.1);
+            }
+
+            // CHECK LOSS FUNCTION FOR A SERIES OF MOVES AND MAKE GRAPH
+            //   1 2 3
+            // 1| | |X|
+            // 2| |O|O|
+            // 3| | |X|
+            // NEXT blocker move is X at 1,2
+            let test_board = [0, 0, 1, 0, -1, -1, 0, 0, 1];
+            let out = net.forward(&test_board);
+            let blocker_losss: f64 = loss(&[0, 0, 1, 1, -1, -1, 0, 0, 1], &out);
+            blocker_losses.data.push(blocker_losss);
+            let test_board = [0, 0, -1, 0, 1, 1, 0, 0, -1];
+            let out = net.forward(&test_board);
+            let winner_losss: f64 = loss(&[0, 0, -1, 1, 1, 1, 0, 0, -1], &out);
+            winner_losses.data.push(winner_losss);
+        } 
+
+        let _ = plot_loss(&[blocker_losses, winner_losses], "Random_neural training loss");
+        let _ = plot_loss(&[random_wins, neural_wins], "Wins during training");
         net
     }
 
@@ -214,12 +236,9 @@ impl TicTacToeNeuralNet {
         }
     }
 
-    /*
-    Forward input data through neural network and create predicted output vector
-    
-    Return:
-            Predicted output vector
-    */
+    /// Forward input data through neural network and create predicted output vector
+    /// 
+    /// Return: Predicted output vector
     #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
     fn forward(&self, input: &[i8]) -> Vec<f64> {
 
@@ -339,6 +358,7 @@ impl TicTacToeNeuralNet {
 
     /// A wrapper around forward to remove the flattening and
     /// moving from main function
+    /// Plays using struct piece_that_should_one
     pub fn forward_wrapped(&self, board: &mut Board) {
 
         let mut flattened_board = 

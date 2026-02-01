@@ -1,5 +1,52 @@
 use std::io::{self, BufRead, Write};
 use crate::data::*;
+use plotters::prelude::*;
+
+use std::path::PathBuf;
+
+fn make_filename(path: &str, filename: &str, extension: &str) -> PathBuf {
+    let mut sti = PathBuf::from(path);
+    sti.push(filename);
+    sti.set_extension(extension);
+    sti
+}
+
+pub fn plot_loss(losses: &[DataToPlot], title: &str) -> Result<(), Box<dyn std::error::Error>> 
+{
+    let filename = make_filename("plots", title, "png");
+
+    let mut y_max: f64 = 1.0;
+    for loss in losses.iter()
+    {
+        y_max = loss.data.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));    
+    }
+    if y_max < 1.0 { y_max = 1.0};
+    let root = BitMapBackend::new(filename.as_path(), (640, 480)).into_drawing_area();
+    root.fill(&WHITE)?;
+    let mut chart = ChartBuilder::on(&root)
+        .caption(title, ("sans-serif", 30).into_font())
+        .margin(30)
+        .x_label_area_size(30)
+        .y_label_area_size(30)
+        .build_cartesian_2d(1..losses[0].data.len(), 0.0..y_max)?;
+
+    chart.configure_mesh().draw()?;
+
+    for (i, loss) in losses.iter().enumerate()
+    {
+        let farge = Palette99::pick(i).mix(0.8);
+        chart.draw_series(LineSeries::new(
+            loss.data.iter().enumerate().map(|(x, y)| (x, *y)),
+            &farge,
+        ))?
+        .label(loss.legend.clone())
+        .legend(move|(x,y)| PathElement::new(vec![(x,y), (x+20,y)], farge));
+    }
+    chart.configure_series_labels().border_style(&BLACK).draw()?;
+
+    Ok(())
+    
+}
 
 pub fn get_input(board: &Board) -> Position {
     let mut response = String::new();
