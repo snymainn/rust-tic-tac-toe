@@ -887,7 +887,91 @@ fn neural_struct_random_train() {
         };
         rounds = num_str.parse().expect("Error: Value is not integer");
     }
-    let neural_play = TicTacToeNeuralNet::train_random(rounds, Piece::X);
+    let neural_play = 
+            TicTacToeNeuralNet::train_random(rounds, Piece::X,
+            Some(false));
+
+    let mut test_board = Board {
+        positions : [
+            [Piece::None,Piece::None,Piece::None],
+            [Piece::None,Piece::None,Piece::None],
+            [Piece::None,Piece::None,Piece::None]],
+        score : 0,
+        computer_piece : Piece::O,
+    };
+    let mut done = false;
+    let mut winner = Piece::None;
+
+    for _ in (0..9).step_by(2) {
+
+        //
+        // Neural net play
+        //
+        if debug { println!("Neural net move\n**************************"); }
+        neural_play.forward_wrapped(&mut test_board);
+        winner = check_status(&test_board);
+        if debug { test_board.display_board(done, &winner); }
+        if done || matches!(winner, Piece::O | Piece::X) { break };
+
+        //
+        // Tree search play
+        //
+        if debug { println!("Tree search move\n***************************"); }
+        get_next_move(&mut test_board, false);
+        winner = check_status(&test_board);
+        done = test_board.full();
+        if debug { test_board.display_board(done, &winner); }
+        if done || matches!(winner, Piece::O | Piece::X) { break };
+        if readkey {
+            println!("Press enter to continue...");
+            let _ = std::io::stdin().read_line(&mut readkey_input);
+        }
+    }
+    assert!(matches!(winner, Piece::None)); // No winners
+}
+
+/// Train neural net using the train_random function in the TicTacToeNeural struct.
+/// Then play with the tree search algotrithm. 
+/// Use extra hidden layer compared to regular neural_struct_random_train()
+/// 
+/// Detect command line arguments after -- e.g. cargo test -- --nocapture
+/// * "readkey" will be detected and thus a wait for keypress will be 
+/// inserted so we can see the computer playing the game with itself as opponent
+/// * "debug" will print more debug. Debug is default when readkey is used
+/// * rounds=\<training rounds\>, default 5, increase number of training rounds 
+#[test]
+fn neural_struct_random_extra_hidden_train() {
+    use std::env;
+    let mut readkey_input = String::new();
+
+    let args: Vec<String> = env::args().collect();
+ 
+    let mut debug = false;
+    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("debug")) {
+        debug = true;
+    }
+    let mut readkey = false;
+    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("readkey")) {
+        readkey = true;
+        debug = true;
+    }
+    let mut rounds: u16 = 100;
+    if let Some(round_input) = args.iter().find(|&&ref a| a.starts_with("rounds")) {
+        let parts = round_input.split_once("=");
+        let num_str = match parts {
+            Some((_,value)) => value.trim(),
+            None => {
+                println!("Error: String {} does not contain =", round_input);
+                return;
+            }
+        };
+        rounds = num_str.parse().expect("Error: Value is not integer");
+    }
+    let neural_play = 
+            TicTacToeNeuralNet::train_random(rounds, Piece::X,
+            Some(true));
+
+    //neural_play.print_matrix(&neural_play.w_hidden.clone().unwrap());
 
     let mut test_board = Board {
         positions : [

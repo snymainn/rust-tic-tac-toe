@@ -8,6 +8,7 @@ use crate::neural_utils::*;
 pub struct TicTacToeNeuralNet {
     pub w_in: Vec<[f64; 15]>,
     pub w_out: Vec<[f64; 9]>,
+    pub w_hidden: Option<Vec<[f64; 15]>>, 
     pub piece_that_should_be_one: Piece
 }
 
@@ -16,6 +17,7 @@ impl TicTacToeNeuralNet {
         let mut net = Self {
             w_in : vec![[0.0; 15]; 9],
             w_out : vec![[0.0; 9]; 15],
+            w_hidden : None,
             piece_that_should_be_one : piece_that_should_be_one
         };
         net.gaussian_matrix();
@@ -75,10 +77,14 @@ impl TicTacToeNeuralNet {
     /// with the winning piece as value 1 to train a neural network.
     /// Stop when neural network can play draw against tree search. 
     #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
-    pub fn train_random(rounds: u16, piece_that_should_be_one: Piece) -> Self {
+    pub fn train_random(rounds: u16, piece_that_should_be_one: Piece, hidden_layers : Option<bool>) -> Self {
         let mut net = Self {
             w_in : vec![[0.0; 15]; 9],
             w_out : vec![[0.0; 9]; 15],
+            w_hidden : match hidden_layers {
+                Some(true) => vec![[0.0; 15]; 15].into(),
+                _ => None
+            },
             piece_that_should_be_one : piece_that_should_be_one
         };
         //let mut readkey_input = String::new();
@@ -213,6 +219,25 @@ impl TicTacToeNeuralNet {
                 }
             }
         }
+        if self.w_hidden != None {
+            let mut tmp = vec![[0.0; 15]; 15];
+            for row in 0..15 {
+                for column in 0..15 {
+                // Generate a random number
+                    let mut random_number: f64;
+                    let mut iterations = 0;
+                    loop {
+                        iterations += 1;
+                        random_number = normal_dist.sample(&mut rng);
+                        if (random_number < 2.0 && random_number > -2.0 && random_number != 0.0)|| iterations > 10 {
+                            break;
+                        }
+                    }
+                    tmp[column as usize][row as usize] = random_number;
+                }
+            }
+            self.w_hidden = Some(tmp);
+        }
     }
     
     #[cfg_attr(not(test), allow(dead_code))]
@@ -292,6 +317,11 @@ impl TicTacToeNeuralNet {
             let synapse_column: Vec<f64>  = self.w_in.iter().map(|row|row[col_index]).collect();
             z1.push(scalar_dot_product(&input_f64, &synapse_column));
         }
+
+        if let Some(ref matrix) = self.w_hidden {
+            assert!(matrix[5][5] != 0.0, "Hidden layer not initalized");
+        }
+
         sigmoid(&mut z1);
 
         // Scalar dot product of hidden node layer and output weigth matrix to create estimated 
