@@ -282,13 +282,33 @@ impl TicTacToeNeuralNet {
         }
         sigmoid(&mut z1);
 
+        let mut zh: Vec<f64> = Vec::new();
+        if let Some(ref matrix) = self.w_hidden {
+            assert!(matrix[5][5] != 0.0, "Hidden layer not initalized");
+            let columns = matrix[0].len();  // Number of columns, i.e. output nodes
+            for col_index in 0..columns {
+                let synapse_column: Vec<f64>  = matrix.iter().map(|row|row[col_index]).collect();
+                zh.push(scalar_dot_product(&z1, &synapse_column));
+            }
+            sigmoid(&mut zh);
+            println!("{:?}", zh);
+        }
+
+
         // Scalar dot product of hidden node layer and output weigth matrix to create estimated 
         // output vector
         let columns = self.w_out[0].len();  // Number of columns, i.e. output nodes
         let mut z2: Vec<f64> = Vec::new();
         for col_index in 0..columns {
             let synapse_column: Vec<f64>  = self.w_out.iter().map(|row|row[col_index]).collect();
-            z2.push(scalar_dot_product(&z1, &synapse_column));
+            if self.w_hidden.is_some() 
+            {
+                z2.push(scalar_dot_product(&zh, &synapse_column));
+            }
+            else
+            {
+                z2.push(scalar_dot_product(&z1, &synapse_column));
+            }
         }
         sigmoid(&mut z2);
         z2
@@ -317,12 +337,20 @@ impl TicTacToeNeuralNet {
             let synapse_column: Vec<f64>  = self.w_in.iter().map(|row|row[col_index]).collect();
             z1.push(scalar_dot_product(&input_f64, &synapse_column));
         }
+        sigmoid(&mut z1);
 
+        let mut zh: Vec<f64> = Vec::new();
         if let Some(ref matrix) = self.w_hidden {
             assert!(matrix[5][5] != 0.0, "Hidden layer not initalized");
+            let columns = matrix[0].len();  // Number of columns, i.e. output nodes
+            for col_index in 0..columns {
+                let synapse_column: Vec<f64>  = matrix.iter().map(|row|row[col_index]).collect();
+                zh.push(scalar_dot_product(&z1, &synapse_column));
+            }
+            sigmoid(&mut zh);
+            println!("{:?}", zh);
         }
 
-        sigmoid(&mut z1);
 
         // Scalar dot product of hidden node layer and output weigth matrix to create estimated 
         // output vector
@@ -330,7 +358,14 @@ impl TicTacToeNeuralNet {
         let mut z2: Vec<f64> = Vec::new();
         for col_index in 0..columns {
             let synapse_column: Vec<f64>  = self.w_out.iter().map(|row|row[col_index]).collect();
-            z2.push(scalar_dot_product(&z1, &synapse_column));
+            if self.w_hidden.is_some() 
+            {
+                z2.push(scalar_dot_product(&zh, &synapse_column));
+            }
+            else
+            {
+                z2.push(scalar_dot_product(&z1, &synapse_column));
+            }
         }
         sigmoid(&mut z2);
         
@@ -350,10 +385,29 @@ impl TicTacToeNeuralNet {
 
         // Create a pass filtered version of the original hidden layer where small and large
         // values are dampened
+        let mut wh_adj: Vec<Vec<f64>> = Vec::new();
+        if self.w_hidden.is_some() 
+        {
+            let mut dtmp: Vec<f64> = Vec::new();
+            let pass_filtered_hidden_layer: Vec<f64> = zh.iter().map(|value| value * (1.0-value)).collect();
+            for (tmp_bp, filtered) in temp_back_prop_hidden_layer.iter().zip(pass_filtered_hidden_layer.iter()) {
+                dtmp.push(*tmp_bp * filtered);
+            }
+            // Do the same to the original hidden layer and the diff output nodes d2
+            for hidden_node_item in zh.iter() {
+                let temp_row: Vec<f64> = dtmp.iter().map(|value| value*hidden_node_item).collect();
+                wh_adj.push(temp_row);
+            }
+            temp_back_prop_hidden_layer.clear();
+            if let Some(ref matrix) = self.w_hidden {
+               for row in matrix.iter() {
+                    temp_back_prop_hidden_layer.push(scalar_dot_product(row, &dtmp));
+                }   
+            }
+        } 
         let pass_filtered_hidden_layer: Vec<f64> = z1.iter().map(|value| value * (1.0-value)).collect();
-        
-        // Create a new diff hidden layer by multiplying each node in the back_prop layer with the filtered
         let mut d1: Vec<f64> = Vec::new();
+        // Create a new diff hidden layer by multiplying each node in the back_prop layer with the filtered
         for (tmp_bp, filtered) in temp_back_prop_hidden_layer.iter().zip(pass_filtered_hidden_layer.iter()) {
             d1.push(*tmp_bp * filtered);
         }
@@ -376,6 +430,15 @@ impl TicTacToeNeuralNet {
         for (row_index, w2_row_ref) in self.w_out.iter_mut().enumerate() {
             for (col_index, element) in w2_row_ref.iter_mut().enumerate() {
                 *element -= alpha * w2_adj[row_index][col_index];
+            }
+        }
+
+        if let Some(ref mut matrix) = self.w_hidden 
+        {
+            for (row_index, wh_row_ref) in matrix.iter_mut().enumerate() {
+                for (col_index, element) in wh_row_ref.iter_mut().enumerate() {
+                    *element -= alpha * wh_adj[row_index][col_index];
+                }
             }
         }
 

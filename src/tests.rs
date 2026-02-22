@@ -1009,5 +1009,6 @@ fn neural_struct_random_extra_hidden_train() {
             let _ = std::io::stdin().read_line(&mut readkey_input);
         }
     }
+    println!("WINNER : {:?}", winner);
     assert!(matches!(winner, Piece::None)); // No winners
 }
