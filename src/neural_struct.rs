@@ -4,21 +4,65 @@ use rand_distr::{Normal, Distribution};
 use crate::data::*;
 use crate::utils::*;
 use crate::neural_utils::*;
+use approx::assert_abs_diff_eq;
 
 pub struct TicTacToeNeuralNet {
     pub w_in: Vec<[f64; 15]>,
     pub w_out: Vec<[f64; 9]>,
     pub w_hidden: Option<Vec<[f64; 15]>>, 
-    pub piece_that_should_be_one: Piece
+    pub piece_that_should_be_one: Piece,
+    pub test: Option<bool>
 }
 
 impl TicTacToeNeuralNet {    
+
+    #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
+    pub fn new_test(piece_that_should_be_one: Piece, hidden_layers : Option<bool>) -> Self {
+        let mut net = Self {
+            w_in : vec![[0.0; 15]; 9],
+            w_out : vec![[0.0; 9]; 15],
+            w_hidden : match hidden_layers {
+                Some(true) => vec![[0.0; 15]; 15].into(),
+                _ => None
+            },
+            piece_that_should_be_one : piece_that_should_be_one,
+            test : Some(false)
+        };
+        //net.gaussian_matrix();
+        let mut start_val = -0.9;
+        for row in 0..net.w_in[0].len() {
+            for column in 0..net.w_in.len() {
+                net.w_in[column as usize][row as usize] = start_val + 0.1;
+            }
+            start_val += 0.1;
+        }
+        let mut start_val = -0.9;
+        for row in 0..net.w_out[0].len() {
+            for column in 0..net.w_out.len() {
+                net.w_out[column as usize][row as usize] = start_val + 0.1;
+            }
+            start_val += 0.1;
+        }
+        let mut start_val = -0.9;
+        if let Some(ref mut matrix) = net.w_hidden {
+            for row in 0..matrix[0].len() {
+                for column in 0..matrix.len() {
+                    matrix[column as usize][row as usize] = start_val + 0.1;
+                }
+                start_val += 0.1;
+            }
+        }
+
+        net
+    }
+
     pub fn train(rounds: u8, piece_that_should_be_one: Piece) -> Self {
         let mut net = Self {
             w_in : vec![[0.0; 15]; 9],
             w_out : vec![[0.0; 9]; 15],
             w_hidden : None,
-            piece_that_should_be_one : piece_that_should_be_one
+            piece_that_should_be_one : piece_that_should_be_one,
+            test : Some(false)
         };
         net.gaussian_matrix();
         
@@ -85,7 +129,8 @@ impl TicTacToeNeuralNet {
                 Some(true) => vec![[0.0; 15]; 15].into(),
                 _ => None
             },
-            piece_that_should_be_one : piece_that_should_be_one
+            piece_that_should_be_one : piece_that_should_be_one,
+            test : Some(false)
         };
         //let mut readkey_input = String::new();
 
@@ -265,7 +310,7 @@ impl TicTacToeNeuralNet {
     /// 
     /// Return: Predicted output vector
     #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
-    fn forward(&self, input: &[i8]) -> Vec<f64> {
+    pub fn forward(&self, input: &[i8]) -> Vec<f64> {
 
         // Tranform the input vector from i8 to f64
         let input_f64: Vec<f64> = input.iter().map(|&number| number as f64).collect();
@@ -322,7 +367,7 @@ impl TicTacToeNeuralNet {
                 Modified weigth matrixes w1 and w2
     */
     #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
-    fn back_prop(&mut self, input: &[i8], output: &[i8], alpha: f64) {
+    pub fn back_prop(&mut self, input: &[i8], output: &[i8], alpha: f64) {
 
         // Tranform the input vector from i8 to f64
         let input_f64: Vec<f64> = input.iter().map(|&number| number as f64).collect();
@@ -337,8 +382,16 @@ impl TicTacToeNeuralNet {
             let synapse_column: Vec<f64>  = self.w_in.iter().map(|row|row[col_index]).collect();
             z1.push(scalar_dot_product(&input_f64, &synapse_column));
         }
+        if self.test == Some(true) {
+            // Scalar product, physical meaning: length of vector projected on another vector
+            // [1, 0, -1, 0, 1, 0, 1, 0, -1] * [-0.8; 8] = -0.8 + 0.8 - 0.8 -0.8 + 0.8 = -0.8
+            assert_eq!(z1[0], -0.8);
+        }
         sigmoid(&mut z1);
-
+        if self.test == Some(true) {
+            assert_abs_diff_eq!(z1[0], 0.31, epsilon=0.01);
+            println!("Testing: first hidden node layer {:.2?}", z1);
+        }
         let mut zh: Vec<f64> = Vec::new();
         if let Some(ref matrix) = self.w_hidden {
             assert!(matrix[5][5] != 0.0, "Hidden layer not initalized");
@@ -347,10 +400,18 @@ impl TicTacToeNeuralNet {
                 let synapse_column: Vec<f64>  = matrix.iter().map(|row|row[col_index]).collect();
                 zh.push(scalar_dot_product(&z1, &synapse_column));
             }
+            let temp_hidden = [0.31, 0.33, 0.35, 0.38, 0.40, 0.43, 0.45, 0.48, 0.50, 0.52, 0.55, 0.57, 0.60, 0.62, 0.65];
+            let fasit: f64 = temp_hidden.iter().map(|value| value*-0.8).sum();
+            if self.test == Some(true) {
+                assert_abs_diff_eq!(zh[0], fasit, epsilon=0.01);
+                println!("Testing: second hidden node layer {:.2?}", zh);
+            }
             sigmoid(&mut zh);
-            println!("{:?}", zh);
+            if self.test == Some(true) {
+                assert_abs_diff_eq!(zh[0], 1f64/(1f64+(-1f64*-5.71).exp()), epsilon=0.01);
+                println!("Testing: sigmoid of second hidden node layer {:.5?}", zh);
+            }
         }
-
 
         // Scalar dot product of hidden node layer and output weigth matrix to create estimated 
         // output vector
@@ -367,20 +428,38 @@ impl TicTacToeNeuralNet {
                 z2.push(scalar_dot_product(&z1, &synapse_column));
             }
         }
+        if self.test == Some(true) && self.w_hidden.is_none() {
+            // [0.31, 0.33, 0.35, 0.38, 0.40, 0.43, 0.45, 0.48, 0.50, 0.52, 0.55, 0.57, 0.60, 0.62, 0.65] * [-0.8; 15] = -5.71
+            let fasit = 0.31 * -0.8 + 0.33  * -0.8 + 0.35  * -0.8 + 0.38 * -0.8 + 0.40  * -0.8 + 0.43 * -0.8 + 0.45 * -0.8 +
+                0.48 * -0.8 + 0.50 * -0.8 + 0.52 * -0.8 + 0.55 * -0.8 + 0.57  * -0.8 + 0.60 * -0.8 + 0.62  * -0.8 + 0.65 * -0.8;
+            assert_abs_diff_eq!(z2[0], fasit, epsilon=0.01);
+        }
         sigmoid(&mut z2);
+        if self.test == Some(true) && self.w_hidden == None {assert_abs_diff_eq!(z2[0], (1.0/(1.0 + (-1f64*-5.71f64).exp())), epsilon=0.01);}
+        
         
         // Subtract estimated output vector with wanted output vector
         let mut d2: Vec<f64> = Vec::new();
         for (out, a2) in output.iter().zip(z2.iter()) {
             d2.push(a2 - (*out as f64));
         }
-        
+        if self.test == Some(true) && self.w_hidden.is_none() {assert_abs_diff_eq!(d2[0], (1.0/(1.0 + (-1f64*-5.71f64).exp())-1f64), epsilon=0.01);} // d2[0] = -0.99
+
         // Scalar dot product of output diff d2 and each of the rows in the weight matrix
         // Each row represents each of the output nodes
         // The result is a modified hidden node layer
         let mut temp_back_prop_hidden_layer: Vec<f64> = Vec::new();
         for row in self.w_out.iter() {
             temp_back_prop_hidden_layer.push(scalar_dot_product(row, &d2));
+        }
+        if self.test == Some(true) && self.w_hidden.is_none() {
+            //self.print_matrix(&self.w_out);
+            println!("{:.5?}", d2);
+            //row  1 : -0.80000 -0.70000 -0.60000 -0.50000 -0.40000 -0.30000 -0.20000 -0.10000 -0.00000
+            //[-0.99671, 0.00670, 1.01359, 0.02736, -0.94567, 0.10503, -0.80665, 0.32868, 1.50000]
+            let fasit = -0.99671 * -0.8 + 0.00670 * -0.7 + 1.01359 * -0.6 + 0.02736 * -0.5 + 
+            -0.94567 * -0.4 + 0.10503 * -0.3 + -0.80665 * -0.2 + 0.32868 * -0.1 + 1.50000 * 0.0;
+            assert_abs_diff_eq!(temp_back_prop_hidden_layer[0], fasit, epsilon=0.01);
         }
 
         // Create a pass filtered version of the original hidden layer where small and large
@@ -406,10 +485,15 @@ impl TicTacToeNeuralNet {
             }
         } 
         let pass_filtered_hidden_layer: Vec<f64> = z1.iter().map(|value| value * (1.0-value)).collect();
+        if self.test == Some(true) && self.w_hidden.is_none() {assert_abs_diff_eq!(pass_filtered_hidden_layer[0], (0.31*(1.0 - 0.31)), epsilon=0.01);}
         let mut d1: Vec<f64> = Vec::new();
         // Create a new diff hidden layer by multiplying each node in the back_prop layer with the filtered
         for (tmp_bp, filtered) in temp_back_prop_hidden_layer.iter().zip(pass_filtered_hidden_layer.iter()) {
             d1.push(*tmp_bp * filtered);
+        }
+        if self.test == Some(true) && self.w_hidden.is_none() {
+            assert_abs_diff_eq!(d1[0], temp_back_prop_hidden_layer[0] * (0.31*(1.0 - 0.31)), epsilon=0.01);
+            println!("Testing: Diff hidden layer {:.4?}", d1);
         }
 
         // Take the new diff hidden layer and create a matrix by multiplying the
@@ -419,6 +503,10 @@ impl TicTacToeNeuralNet {
             let temp_row: Vec<f64> = d1.iter().map(|value| value*input_node_item).collect();
             w1_adj.push(temp_row);
         }
+        if self.test == Some(true) && self.w_hidden.is_none() {
+            assert_abs_diff_eq!(w1_adj[0][0], 0.13f64, epsilon=0.01);
+            println!("Testing: First element input adjustment matrix {:?}", w1_adj[0][0]);
+        }
 
         // Do the same to the original hidden layer and the diff output nodes d2
         let mut w2_adj: Vec<Vec<f64>> = Vec::new();
@@ -427,6 +515,7 @@ impl TicTacToeNeuralNet {
             w2_adj.push(temp_row);
         }
 
+        // Adjust the original output matrix by subtracting each element with the diff matrix multiplied by alpha 
         for (row_index, w2_row_ref) in self.w_out.iter_mut().enumerate() {
             for (col_index, element) in w2_row_ref.iter_mut().enumerate() {
                 *element -= alpha * w2_adj[row_index][col_index];
@@ -442,10 +531,15 @@ impl TicTacToeNeuralNet {
             }
         }
 
+        // Adjust the original input matrix by subtracting each element with the diff matrix multiplied by alpha 
         for (row_index, w1_row_ref) in self.w_in.iter_mut().enumerate() {
             for (col_index, element) in w1_row_ref.iter_mut().enumerate() {
                 *element -= alpha * w1_adj[row_index][col_index];
             }
+        }
+        if self.test == Some(true) && self.w_hidden.is_none() {
+            assert_abs_diff_eq!(self.w_in[0][0], -0.8-alpha*0.13f64, epsilon=0.01);
+            println!("Testing: First element of new input matrix {:?}", self.w_in[0][0]);
         }
     }
 
