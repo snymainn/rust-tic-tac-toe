@@ -225,6 +225,32 @@ pub fn find_largest_index(guess: &[f64]) -> usize {
 }
 
 /*
+    Return element index of with largest value in diff between two arrays
+*/
+#[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
+pub fn diff_vectors_and_ret_largest_index(input: &[i8], guess: &[f64]) -> usize {
+
+    let diff: Vec<f64> = input.iter().zip(guess).map(|(x, y)| ((*x as f64) - y).abs()).collect();
+
+    let pos: Option<(usize, &f64)> = diff.iter().enumerate().
+        max_by(|(_,a), (_,b)| a.partial_cmp(b).unwrap());
+
+    match pos {
+        Some((index, _)) => {
+            return index as usize;
+        }
+        None => {
+            println!("Empty guessed output vector, exiting!");
+            exit(1);
+        }
+    }
+}
+
+
+
+
+
+/*
     Return a matrix of dimension X x Y with numbers
     in a gaussian distribution around 0 with standard deviation of 1
     Limit it to -2 to +2, i.e. generate a new number if outside

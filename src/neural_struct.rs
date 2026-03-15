@@ -17,7 +17,7 @@ pub struct TicTacToeNeuralNet {
 impl TicTacToeNeuralNet {    
 
     #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
-    pub fn new_test(piece_that_should_be_one: Piece, hidden_layers : Option<bool>) -> Self {
+    pub fn fixed_init(piece_that_should_be_one: Piece, hidden_layers : Option<bool>) -> Self {
         let mut net = Self {
             w_in : vec![[0.0; 15]; 9],
             w_out : vec![[0.0; 9]; 15],
@@ -28,7 +28,6 @@ impl TicTacToeNeuralNet {
             piece_that_should_be_one : piece_that_should_be_one,
             test : Some(true)
         };
-        //net.gaussian_matrix();
         let mut start_val = -0.9;
         for row in 0..net.w_in[0].len() {
             for column in 0..net.w_in.len() {
@@ -52,6 +51,23 @@ impl TicTacToeNeuralNet {
                 start_val += 0.1;
             }
         }
+
+        net
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
+    pub fn random_init(piece_that_should_be_one: Piece, hidden_layers : Option<bool>) -> Self {
+        let mut net = Self {
+            w_in : vec![[0.0; 15]; 9],
+            w_out : vec![[0.0; 9]; 15],
+            w_hidden : match hidden_layers {
+                Some(true) => vec![[0.0; 15]; 15].into(),
+                _ => None
+            },
+            piece_that_should_be_one : piece_that_should_be_one,
+            test : Some(false)
+        };
+        net.gaussian_matrix();
 
         net
     }
@@ -327,7 +343,7 @@ impl TicTacToeNeuralNet {
             let synapse_column: Vec<f64>  = self.w_in.iter().map(|row|row[col_index]).collect();
             z1.push(scalar_dot_product(&input_f64, &synapse_column));
         }
-        bipolar(&mut z1);
+        sigmoid(&mut z1);
 
         let mut zh: Vec<f64> = Vec::new();
         if let Some(ref matrix) = self.w_hidden {
@@ -337,8 +353,8 @@ impl TicTacToeNeuralNet {
                 let synapse_column: Vec<f64>  = matrix.iter().map(|row|row[col_index]).collect();
                 zh.push(scalar_dot_product(&z1, &synapse_column));
             }
-            sigmoid_modified(&mut zh);
-            println!("{:?}", zh);
+            sigmoid(&mut zh);
+            //println!("{:?}", zh);
         }
 
 
@@ -389,7 +405,7 @@ impl TicTacToeNeuralNet {
             // [1, 0, -1, 0, 1, 0, 1, 0, -1] * [-0.8; 8] = -0.8 + 0.8 - 0.8 -0.8 + 0.8 = -0.8
             assert_eq!(z1[0], -0.8);
         }
-        bipolar(&mut z1);
+        sigmoid(&mut z1);
         if self.test == Some(true) {
             assert_abs_diff_eq!(z1[0], 0.31, epsilon=0.01);
             println!("Testing: first hidden node layer {:.2?}", z1);
@@ -408,7 +424,7 @@ impl TicTacToeNeuralNet {
                 assert_abs_diff_eq!(zh[0], fasit, epsilon=0.01);
                 println!("Testing: second hidden node layer {:.2?}", zh);
             }
-            sigmoid_modified(&mut zh);
+            sigmoid(&mut zh);
             if self.test == Some(true) {
                 assert_abs_diff_eq!(zh[0], 1f64/(1f64+(-1f64*-5.71).exp()), epsilon=0.01);
                 println!("Testing: sigmoid of second hidden node layer {:.5?}", zh);
@@ -456,7 +472,7 @@ impl TicTacToeNeuralNet {
         }
         if self.test == Some(true) && self.w_hidden.is_none() {
             //self.print_matrix(&self.w_out);
-            println!("{:.5?}", d2);
+            //println!("{:.5?}", d2);
             //row  1 : -0.80000 -0.70000 -0.60000 -0.50000 -0.40000 -0.30000 -0.20000 -0.10000 -0.00000
             //[-0.99671, 0.00670, 1.01359, 0.02736, -0.94567, 0.10503, -0.80665, 0.32868, 1.50000]
             let fasit = -0.99671 * -0.8 + 0.00670 * -0.7 + 1.01359 * -0.6 + 0.02736 * -0.5 + 
@@ -528,7 +544,7 @@ impl TicTacToeNeuralNet {
         {
             for (row_index, wh_row_ref) in matrix.iter_mut().enumerate() {
                 for (col_index, element) in wh_row_ref.iter_mut().enumerate() {
-                    *element -= alpha*5.0 * wh_adj[row_index][col_index];
+                    *element -= alpha/2.0 * wh_adj[row_index][col_index];
                 }
             }
         }
