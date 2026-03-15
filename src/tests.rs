@@ -798,7 +798,7 @@ fn neural_struct_play() {
         readkey = true;
         debug = true;
     }
-    let mut rounds: u8 = 5;
+    let mut rounds: u8 = 10;
     if let Some(round_input) = args.iter().find(|&&ref a| a.starts_with("rounds")) {
         let parts = round_input.split_once("=");
         let num_str = match parts {
@@ -885,7 +885,7 @@ fn neural_struct_random_train() {
         readkey = true;
         debug = true;
     }
-    let mut rounds: u16 = 100;
+    let mut rounds: u16 = 400;
     if let Some(round_input) = args.iter().find(|&&ref a| a.starts_with("rounds")) {
         let parts = round_input.split_once("=");
         let num_str = match parts {

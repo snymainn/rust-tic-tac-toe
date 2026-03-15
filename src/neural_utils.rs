@@ -230,7 +230,7 @@ pub fn find_largest_index(guess: &[f64]) -> usize {
 #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
 pub fn diff_vectors_and_ret_largest_index(input: &[i8], guess: &[f64]) -> usize {
 
-    let diff: Vec<f64> = input.iter().zip(guess).map(|(x, y)| (y - (*x as f64))).collect();
+    let diff: Vec<f64> = input.iter().zip(guess).map(|(x, y)| (y - (*x as f64)).abs()).collect();
     println!("Diff : {:.4?}", diff);
 
     let pos: Option<(usize, &f64)> = diff.iter().enumerate().

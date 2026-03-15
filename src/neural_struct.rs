@@ -229,7 +229,8 @@ impl TicTacToeNeuralNet {
                 // than the input node board
                 assert!((ones_before_move + 1) == ones_after_move);
                 // Train weights
-                net.back_prop(&winner_moves[index], &winner_moves[index+1], 0.1);
+                for _ in 0..2 { net.back_prop(&winner_moves[index], &winner_moves[index+1], 0.1); }
+                
             }
 
             // CHECK LOSS FUNCTION FOR A SERIES OF MOVES AND MAKE GRAPH
