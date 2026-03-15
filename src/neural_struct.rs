@@ -72,11 +72,14 @@ impl TicTacToeNeuralNet {
         net
     }
 
-    pub fn train(rounds: u8, piece_that_should_be_one: Piece) -> Self {
+    pub fn train(rounds: u8, piece_that_should_be_one: Piece, hidden_layers : Option<bool>) -> Self {
         let mut net = Self {
             w_in : vec![[0.0; 15]; 9],
             w_out : vec![[0.0; 9]; 15],
-            w_hidden : vec![[0.0; 15]; 15].into(),
+            w_hidden : match hidden_layers {
+                Some(true) => vec![[0.0; 15]; 15].into(),
+                _ => None
+            },
             piece_that_should_be_one : piece_that_should_be_one,
             test : Some(false)
         };
@@ -84,7 +87,7 @@ impl TicTacToeNeuralNet {
         
         let mut train_board: Board;
 
-        let mut loss_plot: DataToPlot = DataToPlot{ data : vec![], legend : "Loss".to_string()};
+        let mut loss_plot: Vec<DataToPlot>= vec![DataToPlot{ data: vec![], legend: "Loss".to_string()}; 9];
 
         for round in 1..=rounds {
             print!("\nTraining round {}, =>", round);
@@ -101,11 +104,16 @@ impl TicTacToeNeuralNet {
 
             // Train with first obvious move
             let mut input_board :[i8; 9] = [0; 9];
-            let mut output_board = train_board.flatten_board(Some(&Piece::X));
-            for _ in 0..3 {
-                net.back_prop(&input_board, &output_board, 0.1);
-            }
-
+            let mut output_board = train_board.flatten_board(Some(&Piece::X));          
+        
+            // Train on input and output boards
+            for _ in 0..2 { net.back_prop(&input_board, &output_board, 0.1); }
+            // Display loss for last training round
+            let out = net.forward(&input_board);
+            let losss: f64 = loss(&output_board, &out);
+            loss_plot[0].data.push(losss);
+            
+            let mut index: usize = 1;
             loop {
                 input_board = train_board.flatten_board(Some(&Piece::X));
                 get_next_move(&mut train_board, false);
@@ -115,21 +123,20 @@ impl TicTacToeNeuralNet {
 
                 // Train on input and output boards
                 if train_board.computer_piece == Piece::X { // Activate this to only train on one Piece
-                    net.back_prop(&input_board, &output_board, 0.1);
+                    for _ in 0..2 { net.back_prop(&input_board, &output_board, 0.1); }
                 }
                 // Display loss for last training round
                 let out = net.forward(&input_board);
                 let losss: f64 = loss(&output_board, &out);
                 print!(" {:.2}", losss);
-                loss_plot.data.push(losss);
-                if losss < 0.1 { break; } 
-                //train_board.display_board(done, &winner);
+                loss_plot[index].data.push(losss);
                 if done || matches!(winner, Piece::O | Piece::X) { break };
                 train_board.computer_piece = train_board.computer_piece.get_other_piece();
+                index += 1;
             } 
         } 
         println!("");
-        let _ = plot_loss(&[loss_plot], "Loss function of tree-search training");
+        let _ = plot_loss(&loss_plot, "Loss function of tree-search training");
 
         net
     }
@@ -568,8 +575,13 @@ impl TicTacToeNeuralNet {
 
         let mut flattened_board = 
             board.flatten_board(Some(&self.piece_that_should_be_one));
+        
+        board.display_board(false, &Piece::None);
         let out: Vec<f64> = self.forward(&flattened_board);
-        let mut sorted_out: Vec<(f64,usize)> = out.into_iter().enumerate().map(|(i,v)| (v,i)).collect();
+        let diff: Vec<f64> = flattened_board.iter().zip(out).map(|(x, y)| (y - (*x as f64)).abs()).collect();
+        println!("Diff : {:.4?}", diff);
+
+        let mut sorted_out: Vec<(f64,usize)> = diff.into_iter().enumerate().map(|(i,v)| (v,i)).collect();
         sorted_out.sort_by(|a,b| b.0.partial_cmp(&a.0).unwrap());
         let sorted_out_indexes: Vec<usize> = sorted_out.into_iter().map(|(_,i)| i).collect();
         let mut move_ok = false;

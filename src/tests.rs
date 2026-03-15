@@ -798,7 +798,7 @@ fn neural_struct_play() {
         readkey = true;
         debug = true;
     }
-    let mut rounds: u8 = 10;
+    let mut rounds: u8 = 5;
     if let Some(round_input) = args.iter().find(|&&ref a| a.starts_with("rounds")) {
         let parts = round_input.split_once("=");
         let num_str = match parts {
@@ -810,7 +810,7 @@ fn neural_struct_play() {
         };
         rounds = num_str.parse().expect("Error: Value is not integer");
     }
-    let neural_play = TicTacToeNeuralNet::train(rounds, Piece::X);
+    let neural_play = TicTacToeNeuralNet::train(rounds, Piece::X, Some(false));
     //neural_play.print_matrix(&neural_play.w_in);
     //neural_play.print_matrix(&neural_play.w_out);
 
@@ -850,7 +850,13 @@ fn neural_struct_play() {
             let _ = std::io::stdin().read_line(&mut readkey_input);
         }
     }
-    assert!(matches!(winner, Piece::None)); // No winners
+    
+    if matches!(winner, Piece::O) 
+    {
+        test_board.display_board(done, &winner);;
+    }
+
+    assert!(matches!(winner, Piece::None), "{:?}", winner.get_piece()); // No winners
 
     
 }

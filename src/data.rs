@@ -5,6 +5,7 @@ pub struct Position {
     pub col: usize,
 }
 
+#[derive(Clone)]
 pub struct DataToPlot {
     pub data: Vec<f64>,
     pub legend: String,
