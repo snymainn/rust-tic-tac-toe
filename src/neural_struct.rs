@@ -60,7 +60,7 @@ impl TicTacToeNeuralNet {
         let mut net = Self {
             w_in : vec![[0.0; 15]; 9],
             w_out : vec![[0.0; 9]; 15],
-            w_hidden : None,
+            w_hidden : vec![[0.0; 15]; 15].into(),
             piece_that_should_be_one : piece_that_should_be_one,
             test : Some(false)
         };
@@ -106,6 +106,7 @@ impl TicTacToeNeuralNet {
                 let losss: f64 = loss(&output_board, &out);
                 print!(" {:.2}", losss);
                 loss_plot.data.push(losss);
+                if losss < 0.1 { break; } 
                 //train_board.display_board(done, &winner);
                 if done || matches!(winner, Piece::O | Piece::X) { break };
                 train_board.computer_piece = train_board.computer_piece.get_other_piece();
@@ -222,6 +223,7 @@ impl TicTacToeNeuralNet {
             let out = net.forward(&test_board);
             let winner_losss: f64 = loss(&[0, 0, -1, 1, 1, 1, 0, 0, -1], &out);
             winner_losses.data.push(winner_losss);
+            if winner_losss < 0.2 && blocker_losss < 0.2 { break; }
         } 
 
         let _ = plot_loss(&[blocker_losses, winner_losses], "Random_neural training loss");
@@ -335,7 +337,7 @@ impl TicTacToeNeuralNet {
                 let synapse_column: Vec<f64>  = matrix.iter().map(|row|row[col_index]).collect();
                 zh.push(scalar_dot_product(&z1, &synapse_column));
             }
-            bipolar(&mut zh);
+            sigmoid_modified(&mut zh);
             println!("{:?}", zh);
         }
 
@@ -367,7 +369,7 @@ impl TicTacToeNeuralNet {
                 Modified weigth matrixes w1 and w2
     */
     #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
-    pub fn back_prop(&mut self, input: &[i8], output: &[i8], alpha: f64) {
+    pub fn back_prop(&mut self, input: &[i8], output: &[i8], mut alpha: f64) {
 
         // Tranform the input vector from i8 to f64
         let input_f64: Vec<f64> = input.iter().map(|&number| number as f64).collect();
@@ -406,7 +408,7 @@ impl TicTacToeNeuralNet {
                 assert_abs_diff_eq!(zh[0], fasit, epsilon=0.01);
                 println!("Testing: second hidden node layer {:.2?}", zh);
             }
-            bipolar(&mut zh);
+            sigmoid_modified(&mut zh);
             if self.test == Some(true) {
                 assert_abs_diff_eq!(zh[0], 1f64/(1f64+(-1f64*-5.71).exp()), epsilon=0.01);
                 println!("Testing: sigmoid of second hidden node layer {:.5?}", zh);
@@ -526,7 +528,7 @@ impl TicTacToeNeuralNet {
         {
             for (row_index, wh_row_ref) in matrix.iter_mut().enumerate() {
                 for (col_index, element) in wh_row_ref.iter_mut().enumerate() {
-                    *element -= alpha * wh_adj[row_index][col_index];
+                    *element -= alpha*5.0 * wh_adj[row_index][col_index];
                 }
             }
         }

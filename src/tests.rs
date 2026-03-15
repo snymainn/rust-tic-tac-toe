@@ -1049,11 +1049,6 @@ fn neural_struct_back_prop_test() {
             TicTacToeNeuralNet::new_test(Piece::X, Some(false));
      let mut test_back_prop_hidden = 
             TicTacToeNeuralNet::new_test(Piece::X, Some(true));
-    test_back_prop.test = None;
-    test_back_prop_hidden.test = None;
-
-    //test_back_prop.back_prop(&input, &input, 0.1);
-    //test_back_prop_hidden.back_prop(&input, &input, 0.1);
 
     test_back_prop.test = None;
     test_back_prop_hidden.test = None;
@@ -1068,7 +1063,7 @@ fn neural_struct_back_prop_test() {
         losses.data.push(losss);
 
         // With hidden
-        test_back_prop_hidden.back_prop(&input, &input, 0.1);
+        test_back_prop_hidden.back_prop(&input, &input, 0.05);
         hidden_out.copy_from_slice(&test_back_prop_hidden.forward(&input));
         let hidden_loss = loss(&input, &hidden_out);
         hidden_losses.data.push(hidden_loss);
