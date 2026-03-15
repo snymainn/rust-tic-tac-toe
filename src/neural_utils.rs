@@ -19,6 +19,40 @@ pub fn sigmoid(vector: &mut [f64]) {
 }
 
 /*
+    Transform any scalar value to something between -1 and 1
+    Normally the input here will be scalar value that is the
+    result of the dot product with all input values and
+    weigth matrix synapses to one node(neurons)
+    
+    Input: Any number
+    Return: Change input vector where each entry is between 0 and 1
+*/  
+pub fn sigmoid_modified(vector: &mut [f64]) {
+
+    for (_, value) in vector.iter_mut().enumerate() {
+        *value = 2.0/(1.0 + (*value * -1.0).exp()) - 1.0;
+    }
+}
+
+
+/*
+    Transform any scalar value to something between -1 and 1
+    Normally the input here will be scalar value that is the
+    result of the dot product with all input values and
+    weigth matrix synapses to one node(neurons)
+    
+    Input: Any number
+    Return: Change input vector where each entry is between -1 and 1
+*/  
+pub fn bipolar(vector: &mut [f64]) {
+
+    for (_, value) in vector.iter_mut().enumerate() {
+        *value = (*value).tanh();
+    }
+}
+
+
+/*
     Calculate scalar product between two vectors
 */
 pub fn scalar_dot_product(input_vector: &[f64], weigth_vector: &[f64]) -> f64 {

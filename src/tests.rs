@@ -1025,7 +1025,6 @@ fn neural_struct_random_extra_hidden_train() {
 #[test]
 fn neural_struct_back_prop_test() {
     use std::env;
-    let mut readkey_input = String::new();
 
     let args: Vec<String> = env::args().collect();
  
@@ -1042,6 +1041,7 @@ fn neural_struct_back_prop_test() {
      let mut losses: DataToPlot = DataToPlot{ data : vec![], legend : "Loss function without extra hidden".to_string()};
      let mut hidden_losses: DataToPlot = DataToPlot{ data : vec![], legend : "Loss function with extra hidden layer".to_string()};
 
+    // This input vector is required to make the internal test in back_prop to work
     let input = [1, 0, -1, 0, 1, 0, 1, 0, -1];
     //let input = [1, 0, 1, 0, 1, 0, 1, 0, 1];
 
@@ -1049,12 +1049,17 @@ fn neural_struct_back_prop_test() {
             TicTacToeNeuralNet::new_test(Piece::X, Some(false));
      let mut test_back_prop_hidden = 
             TicTacToeNeuralNet::new_test(Piece::X, Some(true));
+    test_back_prop.test = None;
+    test_back_prop_hidden.test = None;
+
+    //test_back_prop.back_prop(&input, &input, 0.1);
+    //test_back_prop_hidden.back_prop(&input, &input, 0.1);
 
     test_back_prop.test = None;
     test_back_prop_hidden.test = None;
     let mut out: Vec<f64> = vec![0.0; 9];
     let mut hidden_out = vec![0.0; 9];
-    for iteration in 0..40 {
+    for iteration in 0..400 {
         
         // Without hidden
         test_back_prop.back_prop(&input, &input, 0.1);
@@ -1069,7 +1074,7 @@ fn neural_struct_back_prop_test() {
         hidden_losses.data.push(hidden_loss);
         
         println!("Loss: {:.4?}, hidden loss: {:.4?}", losss, hidden_loss);
-        if losss < 0.01 || hidden_loss < 0.01 {
+        if losss < 0.01 && hidden_loss < 0.01 {
             println!("Loss function is 0.1 after {iteration} iterations, exiting loop..");
             break;
         }

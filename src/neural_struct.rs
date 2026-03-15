@@ -26,7 +26,7 @@ impl TicTacToeNeuralNet {
                 _ => None
             },
             piece_that_should_be_one : piece_that_should_be_one,
-            test : Some(false)
+            test : Some(true)
         };
         //net.gaussian_matrix();
         let mut start_val = -0.9;
@@ -325,7 +325,7 @@ impl TicTacToeNeuralNet {
             let synapse_column: Vec<f64>  = self.w_in.iter().map(|row|row[col_index]).collect();
             z1.push(scalar_dot_product(&input_f64, &synapse_column));
         }
-        sigmoid(&mut z1);
+        bipolar(&mut z1);
 
         let mut zh: Vec<f64> = Vec::new();
         if let Some(ref matrix) = self.w_hidden {
@@ -335,7 +335,7 @@ impl TicTacToeNeuralNet {
                 let synapse_column: Vec<f64>  = matrix.iter().map(|row|row[col_index]).collect();
                 zh.push(scalar_dot_product(&z1, &synapse_column));
             }
-            sigmoid(&mut zh);
+            bipolar(&mut zh);
             println!("{:?}", zh);
         }
 
@@ -355,7 +355,7 @@ impl TicTacToeNeuralNet {
                 z2.push(scalar_dot_product(&z1, &synapse_column));
             }
         }
-        sigmoid(&mut z2);
+        bipolar(&mut z2);
         z2
     }
 
@@ -387,7 +387,7 @@ impl TicTacToeNeuralNet {
             // [1, 0, -1, 0, 1, 0, 1, 0, -1] * [-0.8; 8] = -0.8 + 0.8 - 0.8 -0.8 + 0.8 = -0.8
             assert_eq!(z1[0], -0.8);
         }
-        sigmoid(&mut z1);
+        bipolar(&mut z1);
         if self.test == Some(true) {
             assert_abs_diff_eq!(z1[0], 0.31, epsilon=0.01);
             println!("Testing: first hidden node layer {:.2?}", z1);
@@ -406,7 +406,7 @@ impl TicTacToeNeuralNet {
                 assert_abs_diff_eq!(zh[0], fasit, epsilon=0.01);
                 println!("Testing: second hidden node layer {:.2?}", zh);
             }
-            sigmoid(&mut zh);
+            bipolar(&mut zh);
             if self.test == Some(true) {
                 assert_abs_diff_eq!(zh[0], 1f64/(1f64+(-1f64*-5.71).exp()), epsilon=0.01);
                 println!("Testing: sigmoid of second hidden node layer {:.5?}", zh);
@@ -434,7 +434,7 @@ impl TicTacToeNeuralNet {
                 0.48 * -0.8 + 0.50 * -0.8 + 0.52 * -0.8 + 0.55 * -0.8 + 0.57  * -0.8 + 0.60 * -0.8 + 0.62  * -0.8 + 0.65 * -0.8;
             assert_abs_diff_eq!(z2[0], fasit, epsilon=0.01);
         }
-        sigmoid(&mut z2);
+        bipolar(&mut z2);
         if self.test == Some(true) && self.w_hidden == None {assert_abs_diff_eq!(z2[0], (1.0/(1.0 + (-1f64*-5.71f64).exp())), epsilon=0.01);}
         
         
