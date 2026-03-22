@@ -34,10 +34,10 @@ pub fn plot_loss(losses: &[DataToPlot], title: &str) -> Result<(), Box<dyn std::
 
     for (i, loss) in losses.iter().enumerate()
     {
-        let farge = Palette99::pick(i).mix(0.8);
+        let farge = Palette99::pick(i).mix(0.8).stroke_width(2);
         chart.draw_series(LineSeries::new(
             loss.data.iter().enumerate().map(|(x, y)| (x, *y)),
-            &farge,
+            farge,
         ))?
         .label(loss.legend.clone())
         .legend(move|(x,y)| PathElement::new(vec![(x,y), (x+20,y)], farge));
