@@ -1,3 +1,4 @@
+use plotters::prelude::Pie;
 use rand::thread_rng;
 use rand_distr::num_traits::One;
 use rand_distr::{Normal, Distribution};
@@ -88,26 +89,37 @@ impl TicTacToeNeuralNet {
         let mut train_board: Board;
 
         let mut loss_plot: Vec<DataToPlot>= vec![DataToPlot{ data: vec![], legend: "Loss".to_string()}; 9];
+        let mut blocker_losses: DataToPlot = DataToPlot{ data : vec![], legend : "blocker loss".to_string()};
+        let mut winner_losses: DataToPlot = DataToPlot{ data : vec![], legend : "winner loss".to_string()};
 
+
+        let mut start_computer_piece : Piece = Piece::O;
+        print!("Training round : ");
         for round in 1..=rounds {
-            print!("\nTraining round {}, =>", round);
+            print!("{}, ", round);
             train_board = Board {
                 positions : [[Piece::None,Piece::None,Piece::None],
-                            [Piece::None,Piece::X,Piece::None],
+                            [Piece::None,start_computer_piece.clone(),Piece::None],
                             [Piece::None,Piece::None,Piece::None]],
                 score : 0,                
-                computer_piece : Piece::O,
+                computer_piece : start_computer_piece.clone(),
             };
             let mut done : bool;
             let mut winner : Piece;
-            print!(" loss : ");
+            let mut iterations = 4;
+            //print!(" loss : ");
 
             // Train with first obvious move
             let mut input_board :[i8; 9] = [0; 9];
             let mut output_board = train_board.flatten_board(Some(&Piece::X));          
         
+            if start_computer_piece == Piece::O { iterations = 4;}
+            
             // Train on input and output boards
-            for _ in 0..2 { net.back_prop(&input_board, &output_board, 0.1); }
+            if train_board.computer_piece == Piece::X { // Activate this to only train on one Piece
+                for _ in 0..iterations { net.back_prop(&input_board, &output_board, 0.1); }
+            }
+            train_board.computer_piece = train_board.computer_piece.get_other_piece();
             // Display loss for last training round
             let out = net.forward(&input_board);
             let losss: f64 = loss(&output_board, &out);
@@ -120,23 +132,33 @@ impl TicTacToeNeuralNet {
                 output_board = train_board.flatten_board(Some(&Piece::X));
                 winner = check_status(&train_board);
                 done = train_board.full();
-
                 // Train on input and output boards
                 if train_board.computer_piece == Piece::X { // Activate this to only train on one Piece
-                    for _ in 0..2 { net.back_prop(&input_board, &output_board, 0.1); }
+                    for _ in 0..iterations { net.back_prop(&input_board, &output_board, 0.1); }
                 }
                 // Display loss for last training round
                 let out = net.forward(&input_board);
                 let losss: f64 = loss(&output_board, &out);
-                print!(" {:.2}", losss);
+                //print!(" {:.2}", losss);
                 loss_plot[index].data.push(losss);
                 if done || matches!(winner, Piece::O | Piece::X) { break };
                 train_board.computer_piece = train_board.computer_piece.get_other_piece();
                 index += 1;
             } 
+            let test_board = [0, 0, 1, 0, -1, -1, 0, 0, 1];
+            let out = net.forward(&test_board);
+            let blocker_losss: f64 = loss(&[0, 0, 1, 1, -1, -1, 0, 0, 1], &out);
+            blocker_losses.data.push(blocker_losss);
+            let test_board = [0, 0, -1, 0, 1, 1, 0, 0, -1];
+            let out = net.forward(&test_board);
+            let winner_losss: f64 = loss(&[0, 0, -1, 1, 1, 1, 0, 0, -1], &out);
+            winner_losses.data.push(winner_losss);
+
+            start_computer_piece = start_computer_piece.get_other_piece();
         } 
-        println!("");
+        //println!("");
         let _ = plot_loss(&loss_plot, "Loss function of tree-search training");
+        let _ = plot_loss(&[blocker_losses, winner_losses], "Random_neural training loss");
 
         net
     }
@@ -393,7 +415,7 @@ impl TicTacToeNeuralNet {
                 Modified weigth matrixes w1 and w2
     */
     #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
-    pub fn back_prop(&mut self, input: &[i8], output: &[i8], mut alpha: f64) {
+    pub fn back_prop(&mut self, input: &[i8], output: &[i8], alpha: f64) {
 
         // Tranform the input vector from i8 to f64
         let input_f64: Vec<f64> = input.iter().map(|&number| number as f64).collect();
@@ -577,10 +599,12 @@ impl TicTacToeNeuralNet {
         let mut flattened_board = 
             board.flatten_board(Some(&self.piece_that_should_be_one));
         
-        board.display_board(false, &Piece::None);
+        //board.display_board(false, &Piece::None);
         let out: Vec<f64> = self.forward(&flattened_board);
+        //println!("Input: {:.4?}", flattened_board);
+        //println!("guess: {:.4?}", out);
         let diff: Vec<f64> = flattened_board.iter().zip(out).map(|(x, y)| (y - (*x as f64)).abs()).collect();
-        println!("Diff : {:.4?}", diff);
+        //println!("Diff : {:.4?}", diff);
 
         let mut sorted_out: Vec<(f64,usize)> = diff.into_iter().enumerate().map(|(i,v)| (v,i)).collect();
         sorted_out.sort_by(|a,b| b.0.partial_cmp(&a.0).unwrap());

@@ -228,10 +228,15 @@ pub fn find_largest_index(guess: &[f64]) -> usize {
     Return element index of with largest value in diff between two arrays
 */
 #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
-pub fn diff_vectors_and_ret_largest_index(input: &[i8], guess: &[f64]) -> usize {
+pub fn diff_vectors_and_ret_largest_index(input: &[i8], guess: &[f64], debug : Option<bool>) -> usize {
 
     let diff: Vec<f64> = input.iter().zip(guess).map(|(x, y)| (y - (*x as f64)).abs()).collect();
-    println!("Diff : {:.4?}", diff);
+    if debug.is_some() && debug == Some(true)
+    {
+        println!("Input: {:.4?}", input);
+        println!("guess: {:.4?}", guess);
+        println!("Diff : {:.4?}", diff);
+    }
 
     let pos: Option<(usize, &f64)> = diff.iter().enumerate().
         max_by(|(_,a), (_,b)| a.partial_cmp(b).unwrap());

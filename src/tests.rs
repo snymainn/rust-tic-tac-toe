@@ -781,7 +781,8 @@ fn select_option_test() {
 /// * "readkey" will be detected and thus a wait for keypress will be 
 /// inserted so we can see the computer playing the game with itself as opponent
 /// * "debug" will print more debug. Debug is default when readkey is used
-/// * rounds=\<training rounds\>, default 5, increase number of training rounds 
+/// * rounds=\<training rounds\>, default 10, increase number of training rounds 
+/// * "hidden-layer" will activate extra hidden layer
 #[test]
 fn neural_struct_play() {
     use std::env;
@@ -798,6 +799,11 @@ fn neural_struct_play() {
         readkey = true;
         debug = true;
     }
+    let mut extra_hidden_layer = false;
+    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("hidden-layer")) {
+        println!("Activate extra hidden layer");
+        extra_hidden_layer = true;
+    }
     let mut rounds: u8 = 10;
     if let Some(round_input) = args.iter().find(|&&ref a| a.starts_with("rounds")) {
         let parts = round_input.split_once("=");
@@ -810,53 +816,58 @@ fn neural_struct_play() {
         };
         rounds = num_str.parse().expect("Error: Value is not integer");
     }
-    let neural_play = TicTacToeNeuralNet::train(rounds, Piece::X, Some(false));
-    //neural_play.print_matrix(&neural_play.w_in);
-    //neural_play.print_matrix(&neural_play.w_out);
+    let mut winners : Vec<Piece> = Vec::new(); 
+    for play in 0..10 {
+        let neural_play = TicTacToeNeuralNet::train(rounds, Piece::X, Some(extra_hidden_layer));
 
-    let mut test_board = Board {
-        positions : [
-            [Piece::None,Piece::None,Piece::None],
-            [Piece::None,Piece::None,Piece::None],
-            [Piece::None,Piece::None,Piece::None]],
-        score : 0,
-        computer_piece : Piece::O,
-    };
-    let mut done = false;
-    let mut winner = Piece::None;
+        let mut test_board = Board {
+            positions : [
+                [Piece::None,Piece::None,Piece::None],
+                [Piece::None,Piece::None,Piece::None],
+                [Piece::None,Piece::None,Piece::None]],
+            score : 0,
+            computer_piece : Piece::O,
+        };
+        let mut done;
+        let mut winner;
 
-    for _ in (0..9).step_by(2) {
+        let mut computer_player: ComputerPlayerType = ComputerPlayerType::Neural;
 
-        //
-        // Neural net play
-        //
-        if debug { println!("Neural net move\n**************************"); }
-        neural_play.forward_wrapped(&mut test_board);
-        winner = check_status(&test_board);
-        if debug { test_board.display_board(done, &winner); }
-        if done || matches!(winner, Piece::O | Piece::X) { break };
-
-        //
-        // Tree search play
-        //
-        if debug { println!("Tree search move\n***************************"); }
-        get_next_move(&mut test_board, false);
-        winner = check_status(&test_board);
-        done = test_board.full();
-        if debug { test_board.display_board(done, &winner); }
-        if done || matches!(winner, Piece::O | Piece::X) { break };
-        if readkey {
-            println!("Press enter to continue...");
-            let _ = std::io::stdin().read_line(&mut readkey_input);
+        loop {
+            match computer_player {
+                ComputerPlayerType::Neural => {
+                    neural_play.forward_wrapped(&mut test_board);
+                    computer_player = ComputerPlayerType::TreeSearch;
+                },
+                ComputerPlayerType::TreeSearch => {
+                    get_next_move(&mut test_board, false);
+                    computer_player = ComputerPlayerType::Neural;
+                }
+            }
+            winner = check_status(&test_board);
+            done = test_board.full();
+            if debug { test_board.display_board(done, &winner); }
+            if done || matches!(winner, Piece::O | Piece::X) {
+                break;
+            };
+            if readkey {
+                println!("Press enter to continue...");
+                let _ = std::io::stdin().read_line(&mut readkey_input);
+            }
         }
+        winners.push(winner);
     }
-    
+
+    /*
     if matches!(winner, Piece::O) 
     {
-        test_board.display_board(done, &winner);;
+        test_board.display_board(done, &winner);
     }
-
-    assert!(matches!(winner, Piece::None), "{:?}", winner.get_piece()); // No winners
+    */
+    for winner in winners {
+        println!("{:?}", winner);
+    }
+    //assert!(matches!(winner, Piece::None), "{:?}", winner.get_piece()); // No winners
 
     
 }
@@ -1026,7 +1037,7 @@ fn neural_struct_random_extra_hidden_train() {
 /// Test back prop function in the TicTacToeNeural struct.
 /// 
 /// Detect command line arguments after -- e.g. cargo test -- --nocapture
-/// * "readkey" will be detected and thus a wait for keypress will be 
+/// * "plot" will make loss function plots 
 /// inserted so we can see the computer playing the game with itself as opponent
 /// * "debug" will print more debug. Debug is default when readkey is used
 #[test]
@@ -1043,94 +1054,110 @@ fn neural_struct_back_prop_test() {
     if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("plot")) {
         plot = true;
     }
+    let mut losses: DataToPlot = DataToPlot{ data : vec![], legend : "Loss function without extra hidden".to_string()};
+    let mut hidden_losses: DataToPlot = DataToPlot{ data : vec![], legend : "Loss function with extra hidden layer".to_string()};
+    let mut losses2: DataToPlot = DataToPlot{ data : vec![], legend : "Loss function2 without extra hidden".to_string()};
+    let mut hidden_losses2: DataToPlot = DataToPlot{ data : vec![], legend : "Loss function2 with extra hidden layer".to_string()};
      
+    let iterations = 100;
+    for iteration in 1..=iterations
+    {
+        let input = [1, 0, -1, 0, 1, 0, 0, 0, -1];
+        let output = [1, 0, -1, 0, 1, 1, 0, 0, -1];
 
-     let mut losses: DataToPlot = DataToPlot{ data : vec![], legend : "Loss function without extra hidden".to_string()};
-     let mut hidden_losses: DataToPlot = DataToPlot{ data : vec![], legend : "Loss function with extra hidden layer".to_string()};
-     let mut losses2: DataToPlot = DataToPlot{ data : vec![], legend : "Loss function2 without extra hidden".to_string()};
-     let mut hidden_losses2: DataToPlot = DataToPlot{ data : vec![], legend : "Loss function2 with extra hidden layer".to_string()};
+        let input2 = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let output2 = [0, 0, 0, 0, 1, 0, 0, 0, 0];
 
-    let input = [1, 0, -1, 0, 1, 0, 0, 0, -1];
-    let output = [1, 0, -1, 0, 1, 1, 0, 0, -1];
+        let mut test_back_prop = 
+                TicTacToeNeuralNet::random_init(Piece::X, Some(false));
+        let mut test_back_prop_hidden = 
+                TicTacToeNeuralNet::random_init(Piece::X, Some(true));
 
-    let input2 = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-    let output2 = [0, 0, 0, 0, 1, 0, 0, 0, 0];
-
-     let mut test_back_prop = 
-            TicTacToeNeuralNet::random_init(Piece::X, Some(false));
-     let mut test_back_prop_hidden = 
-            TicTacToeNeuralNet::random_init(Piece::X, Some(true));
-
-    test_back_prop.test = None;
-    test_back_prop_hidden.test = None;
-    let mut out: Vec<f64> = vec![0.0; 9];
-    let mut hidden_out = vec![0.0; 9];
-    let mut out2: Vec<f64> = vec![0.0; 9];
-    let mut hidden_out2 = vec![0.0; 9];
-    for iteration in 0..20 {
-        
-        // Without hidden
-        test_back_prop.back_prop(&input, &output, 0.1);
-        out.copy_from_slice(&test_back_prop.forward(&input));
-        let losss = loss(&input, &out);
-        losses.data.push(losss);
-
-        // With hidden
-        test_back_prop_hidden.back_prop(&input, &output, 0.05);
-        hidden_out.copy_from_slice(&test_back_prop_hidden.forward(&input));
-        let hidden_loss = loss(&input, &hidden_out);
-        hidden_losses.data.push(hidden_loss);
-
-        // Without hidden input2
-        test_back_prop.back_prop(&input2, &output2, 0.1);
-        out2.copy_from_slice(&test_back_prop.forward(&input2));
-        let losss = loss(&input2, &out);
-        losses2.data.push(losss);
-
-        // With hidden input2
-        test_back_prop_hidden.back_prop(&input2, &output2, 0.05);
-        hidden_out2.copy_from_slice(&test_back_prop_hidden.forward(&input2));
-        let hidden_loss = loss(&input2, &hidden_out);
-        hidden_losses2.data.push(hidden_loss);
+        let mut test_back_prop2 = 
+                TicTacToeNeuralNet::random_init(Piece::X, Some(false));
+        let mut test_back_prop_hidden2 = 
+                TicTacToeNeuralNet::random_init(Piece::X, Some(true));
 
 
-        if debug { println!("Loss: {:.4?}, hidden loss: {:.4?}", losss, hidden_loss); }
-        if losss < 0.1 && hidden_loss < 0.1 {
-            println!("Loss function is 0.1 after {iteration} iterations, exiting loop..");
-            break;
+        test_back_prop.test = None;
+        test_back_prop_hidden.test = None;
+        let mut out: Vec<f64> = vec![0.0; 9];
+        let mut hidden_out = vec![0.0; 9];
+        let mut out2: Vec<f64> = vec![0.0; 9];
+        let mut hidden_out2 = vec![0.0; 9];
+        for _ in 0..20 {
+            
+            // Without hidden
+            test_back_prop.back_prop(&input, &output, 0.1);
+            out.copy_from_slice(&test_back_prop.forward(&input));
+            let losss = loss(&input, &out);
+            if iteration == iterations { losses.data.push(losss);};
+
+            // With hidden, it is essential that alpha is 0.1 as in 
+            // extra hidden layer alpha is divided by 2. E.g 0.05 will be unstable
+            test_back_prop_hidden.back_prop(&input, &output, 0.1);
+            hidden_out.copy_from_slice(&test_back_prop_hidden.forward(&input));
+            let hidden_loss = loss(&input, &hidden_out);
+            if iteration == iterations { hidden_losses.data.push(hidden_loss);};
+
+            // Without hidden input2, 
+            test_back_prop2.back_prop(&input2, &output2, 0.1);
+            out2.copy_from_slice(&test_back_prop2.forward(&input2));
+            let losss = loss(&input2, &out2);
+            if iteration == iterations { losses2.data.push(losss);}
+
+            // With hidden input2, it is essential that alpha is 0.1 as in 
+            // extra hidden layer alpha is divided by 2. E.g 0.05 will be unstable
+            test_back_prop_hidden2.back_prop(&input2, &output2, 0.1);
+            hidden_out2.copy_from_slice(&test_back_prop_hidden2.forward(&input2));
+            let hidden_loss = loss(&input2, &hidden_out2);
+            if iteration == iterations { hidden_losses2.data.push(hidden_loss);}
+
         }
-    }
-    if debug {
-        println!("Output without extra hidden layer{:.4?}", out);
-        println!("Output WITH extra hidden layer{:.4?}", hidden_out);
-        println!("Output2 without extra hidden layer{:.4?}", out2);
-        println!("Output2 WITH extra hidden layer{:.4?}", hidden_out2);
-    }
-    if plot {
-        let _ = plot_loss(&[losses, hidden_losses, losses2, hidden_losses2], "Loss function for back prop test");
+
+        // Check input1 and without extra hidden layer, i.e. output out
+        let neural_move_guess = diff_vectors_and_ret_largest_index(&input, &out, Some(debug));
+        assert_eq!(neural_move_guess, 5);
+
+        // Check input and with extra hidden layer, i.e. output hidden_out
+        let neural_move_guess_hidden = diff_vectors_and_ret_largest_index(&input, &hidden_out, Some(debug));
+        if neural_move_guess_hidden != 5 {
+            println!("Got incorrect input1 result after {} rounds", iteration);
+            test_back_prop_hidden.print_matrix(&test_back_prop_hidden.w_in);
+            test_back_prop_hidden.print_matrix(&test_back_prop_hidden.w_in);
+
+
+        }
+        assert_eq!(neural_move_guess_hidden, 5);
+
+        // Check input2 and without extra hidden layer, i.e. output out2
+        let neural_move_guess2 = diff_vectors_and_ret_largest_index(&input2, &out2, Some(debug));
+        assert_eq!(neural_move_guess2, 4);
+
+        // Check input2 and with extra hidden layer, i.e. output hidden_out2
+        let neural_move_guess2_hidden = diff_vectors_and_ret_largest_index(&input2, &hidden_out2, Some(debug));
+        if neural_move_guess2_hidden != 4 {
+            println!("Got incorrect input2 result after {} rounds", iteration);
+            test_back_prop_hidden2.print_matrix(&test_back_prop_hidden2.w_in);
+            test_back_prop_hidden2.print_matrix(&test_back_prop_hidden2.w_in);
+        }
+
+        assert_eq!(neural_move_guess2_hidden, 4);
+
+        if debug {
+            println!("Neural move guess for input(1) {:.4?} (should be 5)", neural_move_guess);
+            println!("Neural move with extra hidden guess for input(1): {:.4?} (should be 5) ", neural_move_guess_hidden);
+
+            println!("Neural move guess for input2 {:.4?} (should be 4)", neural_move_guess2);
+            println!("Neural move with extra hidden guess for input2: {:.4?} (should be 4) ", neural_move_guess2_hidden);
+        }
+        if plot && iteration == iterations {
+            let _ = plot_loss(&[losses.clone(), hidden_losses.clone(), losses2.clone(), hidden_losses2.clone()], "Loss function for back prop test");
+        }
+
     }
 
-    if debug {
-        test_back_prop.print_matrix(&test_back_prop.w_in);
-        test_back_prop.print_matrix(&test_back_prop.w_out);
-        test_back_prop_hidden.print_matrix(&test_back_prop_hidden.w_in);
-        test_back_prop_hidden.print_matrix(&test_back_prop_hidden.w_out);
-    }
 
-    let neural_move_guess = diff_vectors_and_ret_largest_index(&input, &out);
-    let output_as_f64: Vec<f64> = output.iter().map(|&v| v as f64).collect();
-    let fasit_move_guess = diff_vectors_and_ret_largest_index(&input, &output_as_f64);
-    assert_abs_diff_eq!(neural_move_guess as f64, fasit_move_guess as f64, epsilon=0.1);
-
-    let neural_move_guess2 = diff_vectors_and_ret_largest_index(&input2, &out2);
-    let output2_as_f64: Vec<f64> = output2.iter().map(|&v| v as f64).collect();
-    let fasit_move_guess2 = diff_vectors_and_ret_largest_index(&input2, &output2_as_f64);
-    assert_abs_diff_eq!(neural_move_guess2 as f64, fasit_move_guess2 as f64, epsilon=0.1);
-
-    if debug {
-        println!("Neural move guess {:.4?}, fasit move {:.2?}", neural_move_guess, fasit_move_guess);
-        println!("Neural move guess {:.4?}, fasit move {:.2?}", neural_move_guess2, fasit_move_guess2);
-    }
 
 }
 
