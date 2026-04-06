@@ -59,7 +59,7 @@ and the number of wins of random play and neural play as the training progressed
 
 I wanted to add a second hidden layer. And in the process I wanted to make sure the back prop function was calculated correctly. First I did every step with fixed weight matrixses and asserted every step. Then I found out the obvious way to check the back prop, just train it with the same input and output vector and if it works properly the forward function should be able to guess the output vector pretty quickly after some training. What I discovered was that the network was unable to learn -1, it just became 0(zero). And thus an essential second player was not estimated by the network. The fix was to change the output activation function from a sigmoid to a bipolar tanh function which is able to estimate towards -1. 
 
-I made a test function that changes one piece between input and output, which signifies the preferred piece during training and assert that this piece is selected by the forward process. This process is repeated 100 times. The last of the repeats are listed below. It seems there are a sweep spot between 15 and 20 training rounds before testing the network. With 20 training round the system ran 10000 repeats for the test without failing. 
+I made a test function that changes one piece between input and output, which signifies the preferred piece during training and assert that this piece is selected by the forward process. This process is repeated 100 times. The last of the repeats are listed below. It seems there are a sweep spot between 15 and 20 training rounds before testing the network. With 20 training rounds the back prop test ran 10000 repeats of train and then estimate output without failing. 
 
 Input and output 1 are:
 
