@@ -1,6 +1,6 @@
-//use rand_distr::Exp1;
 #[cfg(test)]
 use crate::neural_struct::TicTacToeNeuralNet;
+#[cfg(test)]
 use crate::neural_utils::diff_vectors_and_ret_largest_index;
 #[cfg(test)]
 use crate::neural_utils::{loss};
@@ -817,8 +817,9 @@ fn neural_struct_play() {
         rounds = num_str.parse().expect("Error: Value is not integer");
     }
     let mut winners : Vec<Piece> = Vec::new(); 
-    for play in 0..10 {
-        let neural_play = TicTacToeNeuralNet::train(rounds, Piece::X, Some(extra_hidden_layer));
+    for _play in 0..10 {
+        let mut neural_play = TicTacToeNeuralNet::random_init(Piece::X, Some(extra_hidden_layer));
+        neural_play.train(rounds);
 
         let mut test_board = Board {
             positions : [
@@ -831,7 +832,7 @@ fn neural_struct_play() {
         let mut done;
         let mut winner;
 
-        let mut computer_player: ComputerPlayerType = ComputerPlayerType::Neural;
+        let mut computer_player: ComputerPlayerType = ComputerPlayerType::TreeSearch;
 
         loop {
             match computer_player {
