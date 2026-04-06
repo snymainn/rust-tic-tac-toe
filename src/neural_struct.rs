@@ -1,4 +1,3 @@
-use plotters::prelude::Pie;
 use rand::thread_rng;
 use rand_distr::num_traits::One;
 use rand_distr::{Normal, Distribution};
@@ -18,45 +17,6 @@ pub struct TicTacToeNeuralNet {
 impl TicTacToeNeuralNet {    
 
     #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
-    pub fn fixed_init(piece_that_should_be_one: Piece, hidden_layers : Option<bool>) -> Self {
-        let mut net = Self {
-            w_in : vec![[0.0; 15]; 9],
-            w_out : vec![[0.0; 9]; 15],
-            w_hidden : match hidden_layers {
-                Some(true) => vec![[0.0; 15]; 15].into(),
-                _ => None
-            },
-            piece_that_should_be_one : piece_that_should_be_one,
-            test : Some(true)
-        };
-        let mut start_val = -0.9;
-        for row in 0..net.w_in[0].len() {
-            for column in 0..net.w_in.len() {
-                net.w_in[column as usize][row as usize] = start_val + 0.1;
-            }
-            start_val += 0.1;
-        }
-        let mut start_val = -0.9;
-        for row in 0..net.w_out[0].len() {
-            for column in 0..net.w_out.len() {
-                net.w_out[column as usize][row as usize] = start_val + 0.1;
-            }
-            start_val += 0.1;
-        }
-        let mut start_val = -0.9;
-        if let Some(ref mut matrix) = net.w_hidden {
-            for row in 0..matrix[0].len() {
-                for column in 0..matrix.len() {
-                    matrix[column as usize][row as usize] = start_val + 0.1;
-                }
-                start_val += 0.1;
-            }
-        }
-
-        net
-    }
-
-    #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
     pub fn random_init(piece_that_should_be_one: Piece, hidden_layers : Option<bool>) -> Self {
         let mut net = Self {
             w_in : vec![[0.0; 15]; 9],
@@ -73,18 +33,7 @@ impl TicTacToeNeuralNet {
         net
     }
 
-    pub fn train(rounds: u8, piece_that_should_be_one: Piece, hidden_layers : Option<bool>) -> Self {
-        let mut net = Self {
-            w_in : vec![[0.0; 15]; 9],
-            w_out : vec![[0.0; 9]; 15],
-            w_hidden : match hidden_layers {
-                Some(true) => vec![[0.0; 15]; 15].into(),
-                _ => None
-            },
-            piece_that_should_be_one : piece_that_should_be_one,
-            test : Some(false)
-        };
-        net.gaussian_matrix();
+    pub fn train(&mut self, rounds: u8) {
         
         let mut train_board: Board;
 
@@ -117,11 +66,11 @@ impl TicTacToeNeuralNet {
             
             // Train on input and output boards
             if train_board.computer_piece == Piece::X { // Activate this to only train on one Piece
-                for _ in 0..iterations { net.back_prop(&input_board, &output_board, 0.1); }
+                for _ in 0..iterations { self.back_prop(&input_board, &output_board, 0.1); }
             }
             train_board.computer_piece = train_board.computer_piece.get_other_piece();
             // Display loss for last training round
-            let out = net.forward(&input_board);
+            let out = self.forward(&input_board);
             let losss: f64 = loss(&output_board, &out);
             loss_plot[0].data.push(losss);
             
@@ -134,10 +83,10 @@ impl TicTacToeNeuralNet {
                 done = train_board.full();
                 // Train on input and output boards
                 if train_board.computer_piece == Piece::X { // Activate this to only train on one Piece
-                    for _ in 0..iterations { net.back_prop(&input_board, &output_board, 0.1); }
+                    for _ in 0..iterations { self.back_prop(&input_board, &output_board, 0.1); }
                 }
                 // Display loss for last training round
-                let out = net.forward(&input_board);
+                let out = self.forward(&input_board);
                 let losss: f64 = loss(&output_board, &out);
                 //print!(" {:.2}", losss);
                 loss_plot[index].data.push(losss);
@@ -146,11 +95,11 @@ impl TicTacToeNeuralNet {
                 index += 1;
             } 
             let test_board = [0, 0, 1, 0, -1, -1, 0, 0, 1];
-            let out = net.forward(&test_board);
+            let out = self.forward(&test_board);
             let blocker_losss: f64 = loss(&[0, 0, 1, 1, -1, -1, 0, 0, 1], &out);
             blocker_losses.data.push(blocker_losss);
             let test_board = [0, 0, -1, 0, 1, 1, 0, 0, -1];
-            let out = net.forward(&test_board);
+            let out = self.forward(&test_board);
             let winner_losss: f64 = loss(&[0, 0, -1, 1, 1, 1, 0, 0, -1], &out);
             winner_losses.data.push(winner_losss);
 
@@ -159,8 +108,6 @@ impl TicTacToeNeuralNet {
         //println!("");
         let _ = plot_loss(&loss_plot, "Loss function of tree-search training");
         let _ = plot_loss(&[blocker_losses, winner_losses], "Random_neural training loss");
-
-        net
     }
 
     /// Train by playing random moves. If a random move wins; use that series
