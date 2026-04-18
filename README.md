@@ -103,6 +103,16 @@ It should be noted that at first the networks with extra hidden layer were initi
 
 It should also be noted that the test uses a function to find the largest index; diff_vectors_and_ret_largest_index. This function uses the absolute value of the difference between the input and estimated output. This is because in real play the neural network might estimate that the highest score is given to -1 player for next move, and then the neural network which always plays as 1 should make that move as it could be a blocker for -1 win.   
 
+
+### Train with tree search - second attempt
+
+* Train neural network with perfect play tree search
+* Train neural network based on who is starting
+* Plot loss function for each move
+* Plot blocker/winner loss functions
+* Ten training rounds with four iterations of each move
+
+
 ## Features
 
 * Play as X or O against the computer
