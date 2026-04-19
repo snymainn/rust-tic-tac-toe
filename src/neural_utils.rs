@@ -27,6 +27,7 @@ pub fn sigmoid(vector: &mut [f64]) {
     Input: Any number
     Return: Change input vector where each entry is between 0 and 1
 */  
+#[allow(dead_code)]
 pub fn sigmoid_modified(vector: &mut [f64]) {
 
     for (_, value) in vector.iter_mut().enumerate() {

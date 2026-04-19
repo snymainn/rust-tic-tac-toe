@@ -413,6 +413,8 @@ fn computer_vs_computer() {
     use std::time::Duration;
     loop {
         get_next_move(&mut test_board, debug);
+        let flat = test_board.flatten_board(Some(&Piece::X));
+        println!("{:?}", flat);
         winner = check_status(&test_board);
         done = test_board.full();
         test_board.display_board(done, &winner);
