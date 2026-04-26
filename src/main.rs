@@ -45,7 +45,7 @@ fn main() {
         println!("\nTraining neural network");
         neural_player = Some(TicTacToeNeuralNet::random_init(my_piece.get_other_piece(), Some(false)));
         if let Some(ref mut temp) = & mut neural_player {
-            temp.train(40);
+            temp.train(40, false);
         }
     }
 

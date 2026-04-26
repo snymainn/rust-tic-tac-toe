@@ -107,10 +107,30 @@ It should also be noted that the test uses a function to find the largest index;
 ### Train with tree search - second attempt
 
 * Train neural network with perfect play tree search
-* Train neural network based on who is starting
-* Plot loss function for each move
-* Plot blocker/winner loss functions
-* Ten training rounds with four iterations of each move
+* Train neural network as always starting
+* Plot loss function for each move as neural network
+* One to ten training rounds with two iterations of each move
+
+| Training rounds | Tree search win | Neural win | Draw |
+| --------------- | --------------- | ---------- | ---- |
+| 1 | 4 | 0 | 1 |
+| 2 | 3 | 0 | 2 |
+| 3 | 2 | 0 | 3 |
+| 4 | 1 | 0 | 4 |
+| 5 | 0 | 0 | 5 |
+| 6 | 0 | 0 | 5 |
+| 7 | 0 | 0 | 5 |
+| 8 | 0 | 0 | 5 |
+| 9 | 0 | 0 | 5 |
+| 10 | 0 | 0 | 5 |
+
+Not resilitent to any other move order than perfect tree search play. 
+
+| Training rounds | Random win | Neural win | Draw |
+| --------------- | ---------- | ---------- | ---- |
+| 10 | 2 | 3 | 0 |
+
+![Loss function for perfect play tree search training](plots/loss_function_tree-search_vs_neural_struct_play_20260426.png)
 
 
 ## Features

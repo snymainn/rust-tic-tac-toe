@@ -788,40 +788,76 @@ fn select_option_test() {
 #[test]
 fn neural_struct_play() {
     use std::env;
-    let mut readkey_input = String::new();
-
     let args: Vec<String> = env::args().collect();
- 
-    let mut debug = false;
-    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("debug")) {
-        debug = true;
-    }
-    let mut readkey = false;
-    if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("readkey")) {
-        readkey = true;
-        debug = true;
-    }
-    let mut extra_hidden_layer = false;
+     let mut extra_hidden_layer = false;
     if let Some(_any) = args.iter().find(|&&ref a| a.starts_with("hidden-layer")) {
         println!("Activate extra hidden layer");
         extra_hidden_layer = true;
     }
-    let mut rounds: u8 = 10;
-    if let Some(round_input) = args.iter().find(|&&ref a| a.starts_with("rounds")) {
-        let parts = round_input.split_once("=");
-        let num_str = match parts {
-            Some((_,value)) => value.trim(),
-            None => {
-                println!("Error: String {} does not contain =", round_input);
-                return;
+    let max_rounds:u8 = if extra_hidden_layer { 20 } else { 10 };
+    let mut winners : Vec<Vec<Piece>> = vec![Vec::new();max_rounds as usize]; 
+    for rounds in 0..max_rounds {
+        for play in 0..5 {
+            let mut neural_play = TicTacToeNeuralNet::random_init(Piece::X, Some(extra_hidden_layer));
+            let mut plot = false; 
+            if rounds == (max_rounds-1) && play == 0 {
+                plot = true;
             }
-        };
-        rounds = num_str.parse().expect("Error: Value is not integer");
+            neural_play.train(rounds, plot);
+
+            let mut test_board = Board {
+                positions : [
+                    [Piece::None,Piece::None,Piece::None],
+                    [Piece::None,Piece::None,Piece::None],
+                    [Piece::None,Piece::None,Piece::None]],
+                score : 0,
+                computer_piece : Piece::O,
+            };
+            let mut done;
+            let mut winner;
+
+            let mut computer_player: ComputerPlayerType = ComputerPlayerType::Neural;
+
+            loop {
+                match computer_player {
+                    ComputerPlayerType::Neural => {
+                        neural_play.forward_wrapped(&mut test_board);
+                        computer_player = ComputerPlayerType::TreeSearch;
+                    },
+                    ComputerPlayerType::TreeSearch => {
+                        get_next_move(&mut test_board, false);
+                        
+                        computer_player = ComputerPlayerType::Neural;
+                    }
+                }
+                winner = check_status(&test_board);
+                done = test_board.full();
+                if done || matches!(winner, Piece::O | Piece::X) {
+                    break;
+                };
+            }
+            winners[rounds as usize].push(winner);
+        }
     }
+    println!("| Training rounds | Tree search win | Neural win | Draw |");
+    println!("| --------------- | --------------- | ---------- | ---- |");
+    
+    for rounds in 0..max_rounds {
+        let tree_search_wins = winners[rounds as usize].as_slice().into_iter().filter(|p| **p == Piece::O).count();
+        let neural_wins = winners[rounds as usize].as_slice().into_iter().filter(|p| **p == Piece::X).count();
+        let draws = winners[rounds as usize].as_slice().into_iter().filter(|p| **p == Piece::None).count();
+        println!("| {} | {} | {} | {} |", rounds+1, tree_search_wins, neural_wins, draws);
+    }
+    let draws_with_max_rounds_of_training = winners
+        .last()
+        .map(|v| v.as_slice().iter().filter(|p| **p == Piece::None).count())
+        .unwrap_or(0);
+    assert!(draws_with_max_rounds_of_training == 5); // No winners
+
     let mut winners : Vec<Piece> = Vec::new(); 
-    for _play in 0..10 {
+    for _play in 0..5 {
         let mut neural_play = TicTacToeNeuralNet::random_init(Piece::X, Some(extra_hidden_layer));
-        neural_play.train(rounds);
+        neural_play.train(max_rounds-1, false);
 
         let mut test_board = Board {
             positions : [
@@ -834,7 +870,7 @@ fn neural_struct_play() {
         let mut done;
         let mut winner;
 
-        let mut computer_player: ComputerPlayerType = ComputerPlayerType::TreeSearch;
+        let mut computer_player: ComputerPlayerType = ComputerPlayerType::Neural;
 
         loop {
             match computer_player {
@@ -843,36 +879,27 @@ fn neural_struct_play() {
                     computer_player = ComputerPlayerType::TreeSearch;
                 },
                 ComputerPlayerType::TreeSearch => {
-                    get_next_move(&mut test_board, false);
+                    test_board.get_random_move(Some(&Piece::O));
                     computer_player = ComputerPlayerType::Neural;
                 }
             }
             winner = check_status(&test_board);
             done = test_board.full();
-            if debug { test_board.display_board(done, &winner); }
             if done || matches!(winner, Piece::O | Piece::X) {
                 break;
             };
-            if readkey {
-                println!("Press enter to continue...");
-                let _ = std::io::stdin().read_line(&mut readkey_input);
-            }
         }
         winners.push(winner);
     }
-
-    /*
-    if matches!(winner, Piece::O) 
-    {
-        test_board.display_board(done, &winner);
-    }
-    */
-    for winner in winners {
-        println!("{:?}", winner);
-    }
-    //assert!(matches!(winner, Piece::None), "{:?}", winner.get_piece()); // No winners
-
+    println!("");
+    println!("| Training rounds | Random win | Neural win | Draw |");
+    println!("| --------------- | ---------- | ---------- | ---- |");
     
+    let random_wins = winners.as_slice().into_iter().filter(|p| **p == Piece::O).count();
+    let neural_wins = winners.as_slice().into_iter().filter(|p| **p == Piece::X).count();
+    let draws = winners.as_slice().into_iter().filter(|p| **p == Piece::None).count();
+    println!("| {} | {} | {} | {} |", 10, random_wins, neural_wins, draws);
+
 }
 
 /// Train neural net using the train_random function in the TicTacToeNeural struct.

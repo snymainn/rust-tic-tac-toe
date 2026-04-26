@@ -1,7 +1,7 @@
 use rand::thread_rng;
 use rand_distr::num_traits::One;
 use rand_distr::{Normal, Distribution};
-use crate::data::*;
+use crate::{data::*};
 use crate::neural_data::PERFECT_TREE_SEARCH_PLAY;
 use crate::utils::*;
 use crate::neural_utils::*;
@@ -34,44 +34,25 @@ impl TicTacToeNeuralNet {
         net
     }
 
-    pub fn train(&mut self, rounds: u8) {
+    pub fn train(&mut self, rounds: u8, plot: bool) {
 
-        let mut loss_plot: Vec<DataToPlot>= vec![DataToPlot{ data: vec![], legend: "Loss".to_string()}; 9];
-        let mut blocker_losses: DataToPlot = DataToPlot{ data : vec![], legend : "blocker loss".to_string()};
-        let mut winner_losses: DataToPlot = DataToPlot{ data : vec![], legend : "winner loss".to_string()};
-        print!("Training round : ");
-        for round in 1..=rounds {
-            print!("{}, ", round);
+        let moves = PERFECT_TREE_SEARCH_PLAY.len()/2;
+        let mut loss_plot: Vec<DataToPlot> = vec![DataToPlot{ data: vec![], legend: "Loss".to_string()}; moves];
+        for _round in 0..=rounds {
             let iterations = 2;
-            let mut index: usize = 0;
             for board_move in (0..(PERFECT_TREE_SEARCH_PLAY.len()-1)).step_by(2) {
-                println!("Move {}, index {}", board_move, index);
                 let input_board = PERFECT_TREE_SEARCH_PLAY[board_move].as_slice();
                 let output_board = PERFECT_TREE_SEARCH_PLAY[board_move+1].as_slice();
-                
-                println!("{:?}", input_board);
-                println!("{:?}", output_board);
-
                 for _ in 0..iterations { self.back_prop(&input_board, &output_board, 0.1); }
-                // Display loss for last training round
                 let out = self.forward(&input_board);
                 let losss: f64 = loss(&output_board, &out);
-
-                loss_plot[index].data.push(losss);
-                index += 1;
-            } 
-            let test_board = [0, 0, 1, 0, -1, -1, 0, 0, 1];
-            let out = self.forward(&test_board);
-            let blocker_losss: f64 = loss(&[0, 0, 1, 1, -1, -1, 0, 0, 1], &out);
-            blocker_losses.data.push(blocker_losss);
-            let test_board = [0, 0, -1, 0, 1, 1, 0, 0, -1];
-            let out = self.forward(&test_board);
-            let winner_losss: f64 = loss(&[0, 0, -1, 1, 1, 1, 0, 0, -1], &out);
-            winner_losses.data.push(winner_losss);
+                loss_plot[board_move/2].data.push(losss);
+                loss_plot[board_move/2].legend = format!("Move {} loss", board_move+1);
+            }
         } 
-        //println!("");
-        let _ = plot_loss(&loss_plot, "Loss function of tree-search training");
-        let _ = plot_loss(&[blocker_losses, winner_losses], "Perfect tree search blocker/winner loss");
+        if plot {
+            let _ = plot_loss(&loss_plot, "Loss function of tree-search training");
+        }
     }
 
     /// Train by playing random moves. If a random move wins; use that series
