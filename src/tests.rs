@@ -1109,8 +1109,6 @@ fn neural_struct_back_prop_test() {
                 TicTacToeNeuralNet::random_init(Piece::X, Some(true));
 
 
-        test_back_prop.test = None;
-        test_back_prop_hidden.test = None;
         let mut out: Vec<f64> = vec![0.0; 9];
         let mut hidden_out = vec![0.0; 9];
         let mut out2: Vec<f64> = vec![0.0; 9];

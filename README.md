@@ -107,9 +107,13 @@ It should also be noted that the test uses a function to find the largest index;
 ### Train with tree search - second attempt
 
 * Train neural network with perfect play tree search
-* Train neural network as always starting
+* Train neural network based on who is starting, and for this test the neural network starts. This is done because I have found it difficult to train a network to play good when it is trained for both first and second move. 
 * Plot loss function for each move as neural network
-* One to ten training rounds with two iterations of each move
+* Check one  up to ten training rounds with two iterations of each move
+
+The results in the below table clearly shows that the network stabilizes after about 5 training rounds. It varies a bit, but it is around 4-6 rounds. If an extra hidden layer is introduced _**twice**_ as many training rounds are required, and it is a bit more unstable, sometimes showing some temporary backlashes around 14-15 training rounds. 
+
+The loss function for each of the neural moves is shown below. In addition the loss function of the above described blocker and winner moves are also shown below. The blocker winner loss shows that the network has no ability to predict these moves, which a general tic-tac-toe network should have. 
 
 | Training rounds | Tree search win | Neural win | Draw |
 | --------------- | --------------- | ---------- | ---- |
@@ -124,13 +128,30 @@ It should also be noted that the test uses a function to find the largest index;
 | 9 | 0 | 0 | 5 |
 | 10 | 0 | 0 | 5 |
 
-Not resilitent to any other move order than perfect tree search play. 
+Table: Table showing how many training rounds that is required for the neural network to always play draw against perfect play tree-search. 
+
+
+#### NOTE: Usability of this neural network trained with perfect played tree-search
+This neural network is not usable for any other oponent than perfect tree-search play which is clearly demonstrated by letting it play against a random player. And if I let the random player start it gets even worse. 
 
 | Training rounds | Random win | Neural win | Draw |
 | --------------- | ---------- | ---------- | ---- |
 | 10 | 2 | 3 | 0 |
+| 10 | 0 | 5 | 0 |
+| 10 | 0 | 4 | 1 |
+| 10 | 0 | 5 | 0 |
+| 10 | 1 | 4 | 0 |
+
+Table: Neural network trained with tree-search playing 5 games against a player that makes random moves. 
+
 
 ![Loss function for perfect play tree search training](plots/loss_function_tree-search_vs_neural_struct_play_20260426.png)
+
+Figure: Loss function of neural network trained with perfect play tree-search. 
+
+![Loss function for blocker/winner loss of neural network](plots/perfect_tree_search_blocker_winner_loss_function_20260426.png)
+
+Figure: Loss function for the above described blocker and winner moves when neural network is trained with perfect play tree-search.  
 
 
 ## Features
