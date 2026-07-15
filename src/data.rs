@@ -14,8 +14,11 @@ pub struct DataToPlot {
 // Debug trait is a simple method to get print
 // to output a string form of the enum definition
 // A better way is to implement Display trait
-#[derive(Debug,Clone,PartialEq)]
-pub enum Piece { None, X, O}
+#[derive(Debug,Clone,PartialEq,Default)]
+pub enum Piece { 
+    None, 
+    X, 
+    #[default] O}
 
 #[derive(Debug,Clone,PartialEq)]
 pub enum ComputerPlayerType { TreeSearch, Neural }

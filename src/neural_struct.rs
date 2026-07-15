@@ -6,6 +6,7 @@ use crate::neural_data::PERFECT_TREE_SEARCH_PLAY;
 use crate::utils::*;
 use crate::neural_utils::*;
 
+#[derive(Default)]
 pub struct TicTacToeNeuralNet {
     pub w_in: Vec<[f64; 15]>,
     pub w_out: Vec<[f64; 9]>,
