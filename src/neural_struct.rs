@@ -32,7 +32,7 @@ impl TicTacToeNeuralNet {
         net
     }
 
-    pub fn train(&mut self, rounds: u8, plot: bool) {
+    pub fn tree_search_train(&mut self, rounds: u8, plot: bool) {
 
         let moves = PERFECT_TREE_SEARCH_PLAY.len()/2;
         let mut loss_plot: Vec<DataToPlot> = vec![DataToPlot{ data: vec![], legend: "Loss".to_string()}; moves];
@@ -57,19 +57,8 @@ impl TicTacToeNeuralNet {
     /// with the winning piece as value 1 to train a neural network.
     /// Stop when neural network can play draw against tree search. 
     #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
-    pub fn train_random(rounds: u16, piece_that_should_be_one: Piece, hidden_layers : Option<bool>) -> Self {
-        let mut net = Self {
-            w_in : vec![[0.0; 15]; 9],
-            w_out : vec![[0.0; 9]; 15],
-            w_hidden : match hidden_layers {
-                Some(true) => vec![[0.0; 15]; 15].into(),
-                _ => None
-            },
-            piece_that_should_be_one : piece_that_should_be_one,
-        };
-        //let mut readkey_input = String::new();
+    pub fn random_train(&mut self, rounds: u16, plot: bool) {
 
-        net.gaussian_matrix();
         
         let mut train_board: Board;
         let mut blocker_losses: DataToPlot = DataToPlot{ data : vec![], legend : "blocker loss".to_string()};
