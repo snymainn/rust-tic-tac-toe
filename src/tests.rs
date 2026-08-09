@@ -796,7 +796,7 @@ fn neural_struct_tree_search_train() {
         println!("Activate check of neural network with play against random oponent five times");
         play_random_oponent = true;
     }
-    let max_rounds:u8 = if extra_hidden_layer { 20 } else { 10 };
+    let max_rounds:usize = if extra_hidden_layer { 20 } else { 10 };
     let mut winners : Vec<Vec<Piece>> = vec![Vec::new();max_rounds as usize]; 
     let mut neural_play: TicTacToeNeuralNet = TicTacToeNeuralNet::default();
     for rounds in 0..max_rounds {
@@ -927,18 +927,22 @@ fn neural_struct_random_train() {
         println!("Activate check of neural network with play against random oponent five times");
         play_random_oponent = true;
     }
-    let max_rounds:u8 = if extra_hidden_layer { 20 } else { 10 };
+    // With hidden layer seems to improve from round 30 and upwards
+    let max_rounds:usize = if extra_hidden_layer { 100 } else { 30 };
+    let step = 2;
+    #[allow(unused_mut)]
     let mut winners : Vec<Vec<Piece>> = vec![Vec::new();max_rounds as usize]; 
     let mut neural_play: TicTacToeNeuralNet = TicTacToeNeuralNet::default();
-    for rounds in 0..max_rounds {
+    for rounds in (0..max_rounds).step_by(step) {
         for play in 0..5 {
             neural_play = TicTacToeNeuralNet::random_init(Piece::X, Some(extra_hidden_layer));
             let mut plot = false; 
-            if rounds == (max_rounds-1) && play == 0 {
+            if rounds > (max_rounds-step-1) && play == 0 {
                 plot = true;
             }
             neural_play.random_train(rounds, plot);
-
+            //return;
+            #[allow(unreachable_code)]
             let mut test_board = Board {
                 positions : [
                     [Piece::None,Piece::None,Piece::None],
@@ -950,6 +954,8 @@ fn neural_struct_random_train() {
             let mut done;
             let mut winner;
 
+            // Why is it so much slower if tree search(random start)??
+            // Why does unlearn every other round with extra hidden layer
             let mut computer_player: ComputerPlayerType = ComputerPlayerType::Neural;
 
             loop {
@@ -960,7 +966,6 @@ fn neural_struct_random_train() {
                     },
                     ComputerPlayerType::TreeSearch => {
                         get_next_move(&mut test_board, false);
-                        
                         computer_player = ComputerPlayerType::Neural;
                     }
                 }
@@ -976,7 +981,7 @@ fn neural_struct_random_train() {
     println!("| Training rounds | Tree search win | Neural win | Draw |");
     println!("| --------------- | --------------- | ---------- | ---- |");
     
-    for rounds in 0..max_rounds {
+    for rounds in (0..max_rounds).step_by(step) {
         let tree_search_wins = winners[rounds as usize].as_slice().into_iter().filter(|p| **p == Piece::O).count();
         let neural_wins = winners[rounds as usize].as_slice().into_iter().filter(|p| **p == Piece::X).count();
         let draws = winners[rounds as usize].as_slice().into_iter().filter(|p| **p == Piece::None).count();

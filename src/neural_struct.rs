@@ -32,7 +32,7 @@ impl TicTacToeNeuralNet {
         net
     }
 
-    pub fn tree_search_train(&mut self, rounds: u8, plot: bool) {
+    pub fn tree_search_train(&mut self, rounds: usize, plot: bool) {
 
         let moves = PERFECT_TREE_SEARCH_PLAY.len()/2;
         let mut loss_plot: Vec<DataToPlot> = vec![DataToPlot{ data: vec![], legend: "Loss".to_string()}; moves];
@@ -57,15 +57,15 @@ impl TicTacToeNeuralNet {
     /// with the winning piece as value 1 to train a neural network.
     /// Stop when neural network can play draw against tree search. 
     #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
-    pub fn random_train(&mut self, rounds: u16, plot: bool) {
-
+    pub fn random_train(&mut self, rounds: usize, plot: bool) {
+        let back_prop_iterations:usize = 2;
         
         let mut train_board: Board;
         let mut blocker_losses: DataToPlot = DataToPlot{ data : vec![], legend : "blocker loss".to_string()};
         let mut winner_losses: DataToPlot = DataToPlot{ data : vec![], legend : "winner loss".to_string()};
         let mut neural_wins: DataToPlot = DataToPlot { data: vec![], legend: "neural wins".to_string() };
         let mut random_wins: DataToPlot = DataToPlot { data: vec![], legend: "random wins".to_string() };
-        for _ in 1..=rounds {
+        for _ in 0..=rounds {
             train_board = Board {
                 positions : [[Piece::None,Piece::None,Piece::None],
                             [Piece::None,Piece::None,Piece::None],
@@ -82,7 +82,7 @@ impl TicTacToeNeuralNet {
                 let _ = train_board.get_random_move(Some(&Piece::X));
                 winner = check_status(&train_board);
                 done = train_board.full();
-
+                //train_board.display_board(done, &winner);
                 // Push both to the move arrays since one must
                 // store the before and after boards for the training
                 // In case O wins the o_moves have O made to 1 so they can be used to train the network
@@ -98,7 +98,7 @@ impl TicTacToeNeuralNet {
                 // variable to play with which is set to X in the unit test function
                 // neural_struct_random_train() when initializing the struct
                 // X playing
-                net.forward_wrapped(&mut train_board);
+                self.forward_wrapped(&mut train_board);
                 winner = check_status(&train_board);
                 done = train_board.full();
                 //train_board.display_board(done, &winner);
@@ -112,8 +112,12 @@ impl TicTacToeNeuralNet {
     
             }
             let winner_moves = match winner {
-                Piece::O => o_moves,
-                Piece::X => x_moves,
+                Piece::O => {
+                    o_moves
+                }
+                Piece::X => {
+                    x_moves
+                }
                 Piece::None => vec![]
             }; 
 
@@ -129,8 +133,11 @@ impl TicTacToeNeuralNet {
                 // than the input node board
                 assert!((ones_before_move + 1) == ones_after_move);
                 // Train weights
-                for _ in 0..2 { net.back_prop(&winner_moves[index], &winner_moves[index+1], 0.1); }
-                
+                for _ in 0..back_prop_iterations { 
+                    self.back_prop(&winner_moves[index], &winner_moves[index+1], 0.1); 
+                }
+                //println!("\nInput: {:?}", winner_moves[index]);
+                //println!("Output: {:?}", winner_moves[index+1]);
             }
 
             // CHECK LOSS FUNCTION FOR A SERIES OF MOVES AND MAKE GRAPH
@@ -140,19 +147,19 @@ impl TicTacToeNeuralNet {
             // 3| | |X|
             // NEXT blocker move is X at 1,2
             let test_board = [0, 0, 1, 0, -1, -1, 0, 0, 1];
-            let out = net.forward(&test_board);
+            let out = self.forward(&test_board);
             let blocker_losss: f64 = loss(&[0, 0, 1, 1, -1, -1, 0, 0, 1], &out);
             blocker_losses.data.push(blocker_losss);
             let test_board = [0, 0, -1, 0, 1, 1, 0, 0, -1];
-            let out = net.forward(&test_board);
+            let out = self.forward(&test_board);
             let winner_losss: f64 = loss(&[0, 0, -1, 1, 1, 1, 0, 0, -1], &out);
             winner_losses.data.push(winner_losss);
             if winner_losss < 0.2 && blocker_losss < 0.2 { break; }
         } 
-
-        let _ = plot_loss(&[blocker_losses, winner_losses], "Random_neural training loss");
-        let _ = plot_loss(&[random_wins, neural_wins], "Wins during training");
-        net
+        if plot {
+            let _ = plot_loss(&[blocker_losses, winner_losses], "Random_neural training loss");
+            let _ = plot_loss(&[random_wins, neural_wins], "Wins during training");
+        }
     }
 
     /*
