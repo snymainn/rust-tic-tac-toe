@@ -192,6 +192,7 @@ The only conclusion is that is is possible to train it to win against a random o
 | 28 | 5 | 0 | 0 |
 | 29 | 5 | 0 | 0 |
 | 30 | 5 | 0 | 0 |
+
 Neural wins against tree search with max rounds of training: 0
 
 | Training rounds | Random win | Neural win | Draw |
