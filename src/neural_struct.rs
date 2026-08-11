@@ -144,7 +144,7 @@ impl TicTacToeNeuralNet {
             let out = self.forward(&test_board);
             let winner_losss: f64 = loss(&[0, 0, -1, 1, 1, 1, 0, 0, -1], &out);
             winner_losses.data.push(winner_losss);
-            if winner_losss < 0.2 && blocker_losss < 0.2 { break; }
+            //if winner_losss < 0.1 && blocker_losss < 0.1 { break; }
         } 
         if plot {
             let _ = plot_loss(&[blocker_losses, winner_losses], "Random_neural training loss");
