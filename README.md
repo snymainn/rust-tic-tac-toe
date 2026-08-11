@@ -155,45 +155,61 @@ Figure: Loss function for the above described blocker and winner moves when neur
 
 ### Training with random search - second attempt
 
+The aim was to train the neural network doing random moves and use the winner moves to train the network, i.e. set winner piece to one and looser piece to -1. Then run the moves through the back prop function with alfa 0.1 and only one back prop iteration. As is clearly shown it is impossible to train the network to only play draw against tree search player. Adding another hidden layer just makes it more unstable and harder to train. Changing alfa value or making it gradually smaller does not help in any way,
+Only using X moves to train, to get only the neural move order, does not help, it only makes it more likely to diverge in ability to block or win for the test blocker/winner tests.
 
+The only conclusion is that is is possible to train it to win against a random opponent, but not consistenly play draw against a tree search player.  
 
 | Training rounds | Tree search win | Neural win | Draw |
 | --------------- | --------------- | ---------- | ---- |
-| 1 | 4 | 0 | 1 |
+| 1 | 5 | 0 | 0 |
 | 2 | 5 | 0 | 0 |
-| 3 | 5 | 0 | 0 |
+| 3 | 3 | 0 | 2 |
 | 4 | 5 | 0 | 0 |
-| 5 | 5 | 0 | 0 |
-| 6 | 4 | 0 | 1 |
+| 5 | 4 | 0 | 1 |
+| 6 | 5 | 0 | 0 |
 | 7 | 5 | 0 | 0 |
-| 8 | 5 | 0 | 0 |
+| 8 | 3 | 0 | 2 |
 | 9 | 5 | 0 | 0 |
 | 10 | 4 | 0 | 1 |
 | 11 | 5 | 0 | 0 |
-| 12 | 5 | 0 | 0 |
-| 13 | 5 | 0 | 0 |
-| 14 | 5 | 0 | 0 |
+| 12 | 4 | 0 | 1 |
+| 13 | 4 | 0 | 1 |
+| 14 | 4 | 0 | 1 |
 | 15 | 4 | 0 | 1 |
-| 16 | 4 | 0 | 1 |
+| 16 | 5 | 0 | 0 |
 | 17 | 5 | 0 | 0 |
-| 18 | 5 | 0 | 0 |
+| 18 | 4 | 0 | 1 |
 | 19 | 5 | 0 | 0 |
 | 20 | 5 | 0 | 0 |
 | 21 | 5 | 0 | 0 |
-| 22 | 4 | 0 | 1 |
-| 23 | 5 | 0 | 0 |
-| 24 | 5 | 0 | 0 |
-| 25 | 5 | 0 | 0 |
+| 22 | 5 | 0 | 0 |
+| 23 | 4 | 0 | 1 |
+| 24 | 4 | 0 | 1 |
+| 25 | 4 | 0 | 1 |
 | 26 | 5 | 0 | 0 |
-| 27 | 4 | 0 | 1 |
-| 28 | 2 | 0 | 3 |
+| 27 | 5 | 0 | 0 |
+| 28 | 5 | 0 | 0 |
 | 29 | 5 | 0 | 0 |
 | 30 | 5 | 0 | 0 |
-Wins with max rounds of training: 0
+Neural wins against tree search with max rounds of training: 0
 
 | Training rounds | Random win | Neural win | Draw |
 | --------------- | ---------- | ---------- | ---- |
 | 10 | 0 | 4 | 1 |
+| 10 | 2 | 2 | 1 |
+| 10 | 0 | 3 | 2 |
+| 10 | 0 | 5 | 0 |
+
+![Loss function plot](plots/random_neural_training_loss_20260811.png)
+
+Figure: Loss function of blocker and winner moves as described further up. Important note that if random wins, which has second move, is removed from the training the winner and blocker losses are more likely to diverge.   
+
+and the number of wins of random play and neural play as the training progressed was:
+
+![Neural vs random wins during training](plots/wins_during_training_20260811.png)
+
+Figure: Shows progress of neural vs random wins as training progresses during max training rounds. 
 
 ## Features
 
