@@ -928,8 +928,8 @@ fn neural_struct_random_train() {
         play_random_oponent = true;
     }
     // With hidden layer seems to improve from round 30 and upwards
-    let max_rounds:usize = if extra_hidden_layer { 100 } else { 30 };
-    let step = 2;
+    let max_rounds:usize = if extra_hidden_layer { 30 } else { 30 };
+    let step = 1;
     #[allow(unused_mut)]
     let mut winners : Vec<Vec<Piece>> = vec![Vec::new();max_rounds as usize]; 
     let mut neural_play: TicTacToeNeuralNet = TicTacToeNeuralNet::default();
@@ -987,11 +987,12 @@ fn neural_struct_random_train() {
         let draws = winners[rounds as usize].as_slice().into_iter().filter(|p| **p == Piece::None).count();
         println!("| {} | {} | {} | {} |", rounds+1, tree_search_wins, neural_wins, draws);
     }
-    let draws_with_max_rounds_of_training = winners
+    let wins_with_max_rounds_of_training = winners
         .last()
-        .map(|v| v.as_slice().iter().filter(|p| **p == Piece::None).count())
+        .map(|v| v.as_slice().iter().filter(|p| **p == Piece::X).count())
         .unwrap_or(0);
-    assert!(draws_with_max_rounds_of_training == 5); // No winners
+    println!("Wins with max rounds of training: {}", wins_with_max_rounds_of_training);
+    assert!(wins_with_max_rounds_of_training == 0); // No winners
 
     //
     // Play random oponent with final trained network

@@ -58,7 +58,7 @@ impl TicTacToeNeuralNet {
     /// Stop when neural network can play draw against tree search. 
     #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
     pub fn random_train(&mut self, rounds: usize, plot: bool) {
-        let back_prop_iterations:usize = 2;
+        let back_prop_iterations:usize = 1;
         
         let mut train_board: Board;
         let mut blocker_losses: DataToPlot = DataToPlot{ data : vec![], legend : "blocker loss".to_string()};
@@ -75,41 +75,32 @@ impl TicTacToeNeuralNet {
             };
             let mut done : bool; // = false;
             let mut winner : Piece; // = Piece::None;
-            let mut x_moves: Vec<[i8; 9]> = vec![]; // vec![[0; 9]];
-            let mut o_moves: Vec<[i8; 9]> = vec![[0; 9]]; // vec![];
+            let mut x_moves: Vec<[i8; 9]> = vec![[0; 9]]; // vec![[0; 9]];
+            let mut o_moves: Vec<[i8; 9]> = vec![]; // vec![];
+            let mut computer_player: ComputerPlayerType = ComputerPlayerType::Neural;
             loop {
-                // O playing
-                let _ = train_board.get_random_move(Some(&Piece::X));
+                match computer_player {
+                    ComputerPlayerType::Neural => {
+                        self.forward_wrapped(&mut train_board);
+                        computer_player = ComputerPlayerType::TreeSearch;
+                    },
+                    ComputerPlayerType::TreeSearch => {
+                        train_board.get_random_move(Some(&Piece::O));
+                        computer_player = ComputerPlayerType::Neural;
+                    }
+                }
                 winner = check_status(&train_board);
                 done = train_board.full();
+                
                 //train_board.display_board(done, &winner);
+                
                 // Push both to the move arrays since one must
                 // store the before and after boards for the training
                 // In case O wins the o_moves have O made to 1 so they can be used to train the network
                 x_moves.push(train_board.flatten_board(Some(&Piece::X)));
                 o_moves.push(train_board.flatten_board(Some(&Piece::O)));
 
-                //println!("Press enter to continue... to neural move");
-                //let _ = std::io::stdin().read_line(&mut readkey_input);
                 if done || matches!(winner, Piece::O | Piece::X) { break };
-
-                //net.back_prop(&input_board, &output_board, 0.1);
-                // forward_wrapped always uses TicTacToeNet struct piece_that_should_be_one
-                // variable to play with which is set to X in the unit test function
-                // neural_struct_random_train() when initializing the struct
-                // X playing
-                self.forward_wrapped(&mut train_board);
-                winner = check_status(&train_board);
-                done = train_board.full();
-                //train_board.display_board(done, &winner);
-                x_moves.push(train_board.flatten_board(Some(&Piece::X)));
-                o_moves.push(train_board.flatten_board(Some(&Piece::O)));
-
-                //println!("Press enter to continue...to random move");
-                //let _ = std::io::stdin().read_line(&mut readkey_input);
-
-                if done || matches!(winner, Piece::O | Piece::X) { break };
-    
             }
             let winner_moves = match winner {
                 Piece::O => {
@@ -120,7 +111,6 @@ impl TicTacToeNeuralNet {
                 }
                 Piece::None => vec![]
             }; 
-
             // Make array that accumulate wins for each round
             random_wins.data.push(random_wins.data.last().unwrap_or(&0.0) + {if winner == Piece::O {1.0} else {0.0}});
             neural_wins.data.push(neural_wins.data.last().unwrap_or(&0.0) + {if winner == Piece::X {1.0} else {0.0}});

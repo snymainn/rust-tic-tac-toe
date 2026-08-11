@@ -153,6 +153,47 @@ Figure: Loss function of neural network trained with perfect play tree-search.
 
 Figure: Loss function for the above described blocker and winner moves when neural network is trained with perfect play tree-search.  
 
+### Training with random search - second attempt
+
+
+
+| Training rounds | Tree search win | Neural win | Draw |
+| --------------- | --------------- | ---------- | ---- |
+| 1 | 4 | 0 | 1 |
+| 2 | 5 | 0 | 0 |
+| 3 | 5 | 0 | 0 |
+| 4 | 5 | 0 | 0 |
+| 5 | 5 | 0 | 0 |
+| 6 | 4 | 0 | 1 |
+| 7 | 5 | 0 | 0 |
+| 8 | 5 | 0 | 0 |
+| 9 | 5 | 0 | 0 |
+| 10 | 4 | 0 | 1 |
+| 11 | 5 | 0 | 0 |
+| 12 | 5 | 0 | 0 |
+| 13 | 5 | 0 | 0 |
+| 14 | 5 | 0 | 0 |
+| 15 | 4 | 0 | 1 |
+| 16 | 4 | 0 | 1 |
+| 17 | 5 | 0 | 0 |
+| 18 | 5 | 0 | 0 |
+| 19 | 5 | 0 | 0 |
+| 20 | 5 | 0 | 0 |
+| 21 | 5 | 0 | 0 |
+| 22 | 4 | 0 | 1 |
+| 23 | 5 | 0 | 0 |
+| 24 | 5 | 0 | 0 |
+| 25 | 5 | 0 | 0 |
+| 26 | 5 | 0 | 0 |
+| 27 | 4 | 0 | 1 |
+| 28 | 2 | 0 | 3 |
+| 29 | 5 | 0 | 0 |
+| 30 | 5 | 0 | 0 |
+Wins with max rounds of training: 0
+
+| Training rounds | Random win | Neural win | Draw |
+| --------------- | ---------- | ---------- | ---- |
+| 10 | 0 | 4 | 1 |
 
 ## Features
 
