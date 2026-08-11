@@ -155,10 +155,10 @@ Figure: Loss function for the above described blocker and winner moves when neur
 
 ### Training with random search - second attempt
 
-The aim was to train the neural network doing random moves and use the winner moves to train the network, i.e. set winner piece to one and looser piece to -1. Then run the moves through the back prop function with alfa 0.1 and only one back prop iteration. As is clearly shown it is impossible to train the network to only play draw against tree search player. Adding another hidden layer just makes it more unstable and harder to train. Changing alfa value or making it gradually smaller does not help in any way,
-Only using X moves to train, to get only the neural move order, does not help, it only makes it more likely to diverge in ability to block or win for the test blocker/winner tests.
+The aim was to train the neural network doing random moves and use the winner moves to train the network, i.e. set winner piece to one and looser piece to -1. Then run the moves through the back prop function with alfa 0.1 and only one back prop iteration. As is clearly shown it is impossible to train the network every time to only play draw against tree search player. Adding another hidden layer just makes it more unstable and harder to train, but hit rate is maybe not to different from only one hidden layer. Changing alfa value or making it gradually smaller does not help in any way,
+Only using X moves to train, to get only the neural move order, does not help significantly, it only makes it more likely to diverge in ability to block or win for the test blocker/winner tests.
 
-The only conclusion is that is is possible to train it to win against a random opponent, but not consistenly play draw against a tree search player.  
+Oneconclusion is that it is possible to train it to win against a random opponent, but not consistenly play draw against a tree search player for every training. But if one is lucky with the init of the weights it seems to be possible to train it fairly well.  
 
 | Training rounds | Tree search win | Neural win | Draw |
 | --------------- | --------------- | ---------- | ---- |
