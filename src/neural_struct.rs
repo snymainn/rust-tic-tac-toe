@@ -1,3 +1,5 @@
+use std::default;
+
 use rand::thread_rng;
 use rand_distr::num_traits::One;
 use rand_distr::{Normal, Distribution};
@@ -59,97 +61,146 @@ impl TicTacToeNeuralNet {
     #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
     pub fn random_train(&mut self, rounds: usize, plot: bool) {
         let back_prop_iterations:usize = 1;
-        
-        let mut train_board: Board;
-        let mut blocker_losses: DataToPlot = DataToPlot{ data : vec![], legend : "blocker loss".to_string()};
-        let mut winner_losses: DataToPlot = DataToPlot{ data : vec![], legend : "winner loss".to_string()};
-        let mut neural_wins: DataToPlot = DataToPlot { data: vec![], legend: "neural wins".to_string() };
-        let mut random_wins: DataToPlot = DataToPlot { data: vec![], legend: "random wins".to_string() };
-        for _ in 0..=rounds {
-            train_board = Board {
-                positions : [[Piece::None,Piece::None,Piece::None],
-                            [Piece::None,Piece::None,Piece::None],
-                            [Piece::None,Piece::None,Piece::None]],
-                score : 0,                
-                computer_piece : Piece::O, // Random moves are Piece::O, which is mostly -1 below
+        let max_attempts_to_get_draw_against_tree_search = 10;
+        for draw_attempt in 0..max_attempts_to_get_draw_against_tree_search {
+            let mut train_board: Board;
+            let mut blocker_losses: DataToPlot = DataToPlot{ data : vec![], legend : "blocker loss".to_string()};
+            let mut winner_losses: DataToPlot = DataToPlot{ data : vec![], legend : "winner loss".to_string()};
+            let mut neural_wins: DataToPlot = DataToPlot { data: vec![], legend: "neural wins".to_string() };
+            let mut random_wins: DataToPlot = DataToPlot { data: vec![], legend: "random wins".to_string() };
+            for round in 0..=rounds {
+                train_board = Board {
+                    positions : [[Piece::None,Piece::None,Piece::None],
+                                [Piece::None,Piece::None,Piece::None],
+                                [Piece::None,Piece::None,Piece::None]],
+                    score : 0,                
+                    computer_piece : Piece::O, // Random moves are Piece::O, which is mostly -1 below
+                };
+                let mut done : bool; // = false;
+                let mut winner : Piece; // = Piece::None;
+                let mut x_moves: Vec<[i8; 9]> = vec![[0; 9]]; // vec![[0; 9]];
+                let mut o_moves: Vec<[i8; 9]> = vec![]; // vec![];
+                let mut computer_player: ComputerPlayerType = ComputerPlayerType::Neural;
+                loop {
+                    match computer_player {
+                        ComputerPlayerType::Neural => {
+                            self.forward_wrapped(&mut train_board);
+                            computer_player = ComputerPlayerType::TreeSearch;
+                        },
+                        ComputerPlayerType::TreeSearch => {
+                            train_board.get_random_move(Some(&Piece::O));
+                            computer_player = ComputerPlayerType::Neural;
+                        }
+                    }
+                    winner = check_status(&train_board);
+                    done = train_board.full();
+                    
+                    //train_board.display_board(done, &winner);
+                    
+                    // Push both to the move arrays since one must
+                    // store the before and after boards for the training
+                    // In case O wins the o_moves have O made to 1 so they can be used to train the network
+                    x_moves.push(train_board.flatten_board(Some(&Piece::X)));
+                    o_moves.push(train_board.flatten_board(Some(&Piece::O)));
+
+                    if done || matches!(winner, Piece::O | Piece::X) { break };
+                }
+                let winner_moves = match winner {
+                    Piece::O => {
+                        o_moves
+                    }
+                    Piece::X => {
+                        x_moves
+                    }
+                    Piece::None => vec![]
+                }; 
+                // Make array that accumulate wins for each round
+                random_wins.data.push(random_wins.data.last().unwrap_or(&0.0) + {if winner == Piece::O {1.0} else {0.0}});
+                neural_wins.data.push(neural_wins.data.last().unwrap_or(&0.0) + {if winner == Piece::X {1.0} else {0.0}});
+
+                // Train with the winner moves, if O wins; -1 and 1 are switched
+                for index in (0..winner_moves.len()).step_by(2) {
+                    let ones_before_move = winner_moves[index].iter().filter(|x| x.is_one()).count();
+                    let ones_after_move = winner_moves[index+1].iter().filter(|x| x.is_one()).count();
+                    // Assert that there are always one more 1 piece in the output node board
+                    // than the input node board
+                    assert!((ones_before_move + 1) == ones_after_move);
+                    // Train weights
+                    for _ in 0..back_prop_iterations { 
+                        self.back_prop(&winner_moves[index], &winner_moves[index+1], 0.1); 
+                    }
+                    //println!("\nInput: {:?}", winner_moves[index]);
+                    //println!("Output: {:?}", winner_moves[index+1]);
+                }
+
+                // CHECK LOSS FUNCTION FOR A SERIES OF MOVES AND MAKE GRAPH
+                //   1 2 3
+                // 1| | |X|
+                // 2| |O|O|
+                // 3| | |X|
+                // NEXT blocker move is X at 1,2
+                let test_board = [0, 0, 1, 0, -1, -1, 0, 0, 1];
+                let out = self.forward(&test_board);
+                let blocker_losss: f64 = loss(&[0, 0, 1, 1, -1, -1, 0, 0, 1], &out);
+                blocker_losses.data.push(blocker_losss);
+                let test_board = [0, 0, -1, 0, 1, 1, 0, 0, -1];
+                let out = self.forward(&test_board);
+                let winner_losss: f64 = loss(&[0, 0, -1, 1, 1, 1, 0, 0, -1], &out);
+                winner_losses.data.push(winner_losss);
+                let loss_req = 0.1;
+                if winner_losss < loss_req && blocker_losss < loss_req { 
+                    println!("Winner ({:.2}) and blocker loss ({:.2}) < {:.1}, 
+                            exiting loop at {} rounds", winner_losss, blocker_losss, 
+                            loss_req, round);
+                    break; 
+                }
+
+            } 
+            if plot {
+                let _ = plot_loss(&[blocker_losses, winner_losses], "Random_neural training loss");
+                let _ = plot_loss(&[random_wins, neural_wins], "Wins during training");
+            }
+            let mut test_board = Board {
+                positions : [
+                    [Piece::None,Piece::None,Piece::None],
+                    [Piece::None,Piece::None,Piece::None],
+                    [Piece::None,Piece::None,Piece::None]],
+                score : 0,
+                computer_piece : Piece::O,
             };
-            let mut done : bool; // = false;
-            let mut winner : Piece; // = Piece::None;
-            let mut x_moves: Vec<[i8; 9]> = vec![[0; 9]]; // vec![[0; 9]];
-            let mut o_moves: Vec<[i8; 9]> = vec![]; // vec![];
-            let mut computer_player: ComputerPlayerType = ComputerPlayerType::Neural;
+            let mut done;
+            let mut winner;
+            let mut computer_player: ComputerPlayerType = ComputerPlayerType::TreeSearch;
             loop {
                 match computer_player {
                     ComputerPlayerType::Neural => {
-                        self.forward_wrapped(&mut train_board);
+                        self.forward_wrapped(&mut test_board);
                         computer_player = ComputerPlayerType::TreeSearch;
                     },
                     ComputerPlayerType::TreeSearch => {
-                        train_board.get_random_move(Some(&Piece::O));
+                        get_next_move(&mut test_board, false);
+                        
                         computer_player = ComputerPlayerType::Neural;
                     }
                 }
-                winner = check_status(&train_board);
-                done = train_board.full();
-                
-                //train_board.display_board(done, &winner);
-                
-                // Push both to the move arrays since one must
-                // store the before and after boards for the training
-                // In case O wins the o_moves have O made to 1 so they can be used to train the network
-                x_moves.push(train_board.flatten_board(Some(&Piece::X)));
-                o_moves.push(train_board.flatten_board(Some(&Piece::O)));
-
-                if done || matches!(winner, Piece::O | Piece::X) { break };
+                winner = check_status(&test_board);
+                done = test_board.full();
+                if done || matches!(winner, Piece::O | Piece::X) {
+                    break;
+                };
             }
-            let winner_moves = match winner {
-                Piece::O => {
-                    o_moves
+            match winner {
+                Piece::None => {
+                    println!("Draw in {} attempts", draw_attempt);
+                    return()
                 }
-                Piece::X => {
-                    x_moves
+                _ => {
+                    println!("Winner {} in attempt {}", winner.get_piece(), draw_attempt);
                 }
-                Piece::None => vec![]
-            }; 
-            // Make array that accumulate wins for each round
-            random_wins.data.push(random_wins.data.last().unwrap_or(&0.0) + {if winner == Piece::O {1.0} else {0.0}});
-            neural_wins.data.push(neural_wins.data.last().unwrap_or(&0.0) + {if winner == Piece::X {1.0} else {0.0}});
-
-            // Train with the winner moves, if O wins; -1 and 1 are switched
-            for index in (0..winner_moves.len()).step_by(2) {
-                let ones_before_move = winner_moves[index].iter().filter(|x| x.is_one()).count();
-                let ones_after_move = winner_moves[index+1].iter().filter(|x| x.is_one()).count();
-                // Assert that there are always one more 1 piece in the output node board
-                // than the input node board
-                assert!((ones_before_move + 1) == ones_after_move);
-                // Train weights
-                for _ in 0..back_prop_iterations { 
-                    self.back_prop(&winner_moves[index], &winner_moves[index+1], 0.1); 
-                }
-                //println!("\nInput: {:?}", winner_moves[index]);
-                //println!("Output: {:?}", winner_moves[index+1]);
             }
-
-            // CHECK LOSS FUNCTION FOR A SERIES OF MOVES AND MAKE GRAPH
-            //   1 2 3
-            // 1| | |X|
-            // 2| |O|O|
-            // 3| | |X|
-            // NEXT blocker move is X at 1,2
-            let test_board = [0, 0, 1, 0, -1, -1, 0, 0, 1];
-            let out = self.forward(&test_board);
-            let blocker_losss: f64 = loss(&[0, 0, 1, 1, -1, -1, 0, 0, 1], &out);
-            blocker_losses.data.push(blocker_losss);
-            let test_board = [0, 0, -1, 0, 1, 1, 0, 0, -1];
-            let out = self.forward(&test_board);
-            let winner_losss: f64 = loss(&[0, 0, -1, 1, 1, 1, 0, 0, -1], &out);
-            winner_losses.data.push(winner_losss);
-            //if winner_losss < 0.1 && blocker_losss < 0.1 { break; }
-        } 
-        if plot {
-            let _ = plot_loss(&[blocker_losses, winner_losses], "Random_neural training loss");
-            let _ = plot_loss(&[random_wins, neural_wins], "Wins during training");
         }
+        println!("Failed to traing to play draw against tree search in {} attempts",
+            max_attempts_to_get_draw_against_tree_search);
     }
 
     /*

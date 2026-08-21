@@ -43,9 +43,13 @@ fn main() {
     let mut neural_player: Option<TicTacToeNeuralNet> = None;
     if computer_player == ComputerPlayerType::Neural {
         println!("\nTraining neural network");
-        neural_player = Some(TicTacToeNeuralNet::random_init(my_piece.get_other_piece(), Some(false)));
+        neural_player = Some(TicTacToeNeuralNet::random_init(
+            Piece::X, 
+            Some(true)));
         if let Some(ref mut temp) = & mut neural_player {
-            temp.tree_search_train(40, false);
+            // NEED TO PASS IN WHO IS STARTING BECAUSE THE TEST SHOULD PLAY THAT WAY
+            // AND ALSO THE NEURAL NET SHOULD BE TRAINED THAT WAY
+            temp.random_train(30, true);
         }
     }
 
