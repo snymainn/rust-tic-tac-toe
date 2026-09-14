@@ -11,7 +11,7 @@ fn make_filename(path: &str, filename: &str, extension: &str) -> PathBuf {
     sti
 }
 
-pub fn plot_loss(losses: &[DataToPlot], title: &str) -> Result<(), Box<dyn std::error::Error>> 
+pub fn plot_loss(losses: &[DataToPlot], title: &str, y_axis_desc: &str) -> Result<(), Box<dyn std::error::Error>> 
 {
     let filename = make_filename("plots", title, "png");
     println!("Saving plot : {:?}", filename);
@@ -26,14 +26,14 @@ pub fn plot_loss(losses: &[DataToPlot], title: &str) -> Result<(), Box<dyn std::
     root.fill(&WHITE)?;
     let mut chart = ChartBuilder::on(&root)
         .caption(title, ("sans-serif", 30).into_font())
-        .margin(30)
+        .margin(40)
         .x_label_area_size(40)
         .y_label_area_size(40)
         .build_cartesian_2d(0..(losses[0].data.len()-1), 0.0..y_max)?;
 
     chart.configure_mesh()
         .x_desc("Training rounds")
-        .y_desc("Loss")
+        .y_desc(y_axis_desc)
         .axis_desc_style(("sans-serif", 18).into_font())
         .draw()?;
 

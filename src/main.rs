@@ -40,19 +40,6 @@ fn main() {
 
     println!("Selected player {:?}", my_piece);
 
-    let mut neural_player: Option<TicTacToeNeuralNet> = None;
-    if computer_player == ComputerPlayerType::Neural {
-        println!("\nTraining neural network");
-        neural_player = Some(TicTacToeNeuralNet::random_init(
-            Piece::X, 
-            Some(true)));
-        if let Some(ref mut temp) = & mut neural_player {
-            // NEED TO PASS IN WHO IS STARTING BECAUSE THE TEST SHOULD PLAY THAT WAY
-            // AND ALSO THE NEURAL NET SHOULD BE TRAINED THAT WAY
-            temp.random_train(30, true);
-        }
-    }
-
     let mut board = Board {
         positions: [
             [Piece::None, Piece::None, Piece::None],
@@ -73,6 +60,17 @@ fn main() {
             println!("You start!");
             board.display_board(done, &winner);
             human_player = true;
+        }
+    }
+
+    let mut neural_player: Option<TicTacToeNeuralNet> = None;
+    if computer_player == ComputerPlayerType::Neural {
+        println!("\nTraining neural network");
+        neural_player = Some(TicTacToeNeuralNet::random_init(
+            Piece::X, 
+            Some(false)));
+        if let Some(ref mut temp) = & mut neural_player {
+            temp.random_train(500, true, human_player == false, 100);
         }
     }
 

@@ -1,6 +1,9 @@
 use std::process::exit;
 use rand::thread_rng;
 use rand_distr::{Normal, Distribution};
+use crate::neural_struct::TicTacToeNeuralNet;
+use super::*;
+
 
 /*
     Transform any scalar value to something between 0 and 1
@@ -287,4 +290,121 @@ pub fn gaussian_matrix(x: i8, y: i8, out: &mut [&mut [f64]])
             out[row as usize][column as usize] = random_number;
         }
     }
+}
+
+#[allow(dead_code)] // Allow dead code for prod build because only in test currently
+pub fn neural_struct_random_train(start: u32, max_rounds: u32, step: u32, tests: u32, extra_hidden_layer: bool, play_random_oponent: bool) {
+
+    // With hidden layer seems to improve from round 30 and upwards
+    #[allow(unused_mut)]
+    let mut winners : Vec<Vec<Piece>> = vec![Vec::new();max_rounds as usize+1 as usize]; 
+    let mut neural_play: TicTacToeNeuralNet = TicTacToeNeuralNet::default();
+    let mut last_rounds_number = 0;
+    for rounds in (start..=max_rounds).step_by(step as usize) {
+        println!("***** Training with {} iteration(s) *****", rounds + if rounds == 0 { 1 } else { 0 });
+        for play in 0..tests {
+            println!(" >> Test {} of {}", play + 1, tests);
+            neural_play = TicTacToeNeuralNet::random_init(Piece::X, Some(extra_hidden_layer));
+            let plot: bool = if rounds > (max_rounds-step) && play == (tests - 1) { true } else { false };
+            neural_play.random_train(rounds as usize, plot, true, 100);
+            let mut test_board = Board {
+                positions : [
+                    [Piece::None,Piece::None,Piece::None],
+                    [Piece::None,Piece::None,Piece::None],
+                    [Piece::None,Piece::None,Piece::None]],
+                score : 0,
+                computer_piece : Piece::O,
+            };
+            let mut done;
+            let mut winner;
+
+            // Why is it so much slower if tree search(random start)??
+            // Why does unlearn every other round with extra hidden layer
+            let mut computer_player: ComputerPlayerType = ComputerPlayerType::Neural;
+
+            loop {
+                match computer_player {
+                    ComputerPlayerType::Neural => {
+                        neural_play.forward_wrapped(&mut test_board);
+                        computer_player = ComputerPlayerType::TreeSearch;
+                    },
+                    ComputerPlayerType::TreeSearch => {
+                        get_next_move(&mut test_board, false);
+                        computer_player = ComputerPlayerType::Neural;
+                    }
+                }
+                winner = check_status(&test_board);
+                done = test_board.full();
+                if done || matches!(winner, Piece::O | Piece::X) {
+                    break;
+                };
+            }
+            winners[rounds as usize].push(winner);
+        }
+        last_rounds_number = rounds;
+    }
+    println!("| Training rounds | Tree search win | Neural win | Draw |");
+    println!("| --------------- | --------------- | ---------- | ---- |");
+    
+    for rounds in (start..=max_rounds).step_by(step as usize) {
+        let tree_search_wins = winners[rounds as usize].as_slice().into_iter().filter(|p| **p == Piece::O).count();
+        let neural_wins = winners[rounds as usize].as_slice().into_iter().filter(|p| **p == Piece::X).count();
+        let draws = winners[rounds as usize].as_slice().into_iter().filter(|p| **p == Piece::None).count();
+        println!("| {} | {} | {} | {} |", rounds + if rounds == 0 { 1 } else { 0 }, tree_search_wins, neural_wins, draws);
+    }
+    let wins_with_max_rounds_of_training = winners
+        .last()
+        .map(|v| v.as_slice().iter().filter(|p| **p == Piece::X).count())
+        .unwrap_or(0);
+    println!("Wins with max rounds of training: {}", wins_with_max_rounds_of_training);
+    assert!(wins_with_max_rounds_of_training == 0); // No winners
+
+    //
+    // Play random oponent with final trained network
+    //
+    if play_random_oponent {
+        let mut winners : Vec<Piece> = Vec::new(); 
+        for _play in 0..5 {
+            let mut test_board = Board {
+                positions : [
+                    [Piece::None,Piece::None,Piece::None],
+                    [Piece::None,Piece::None,Piece::None],
+                    [Piece::None,Piece::None,Piece::None]],
+                score : 0,
+                computer_piece : Piece::O,
+            };
+            let mut done;
+            let mut winner;
+
+            let mut computer_player: ComputerPlayerType = ComputerPlayerType::Neural;
+
+            loop {
+                match computer_player {
+                    ComputerPlayerType::Neural => {
+                        neural_play.forward_wrapped(&mut test_board);
+                        computer_player = ComputerPlayerType::TreeSearch;
+                    },
+                    ComputerPlayerType::TreeSearch => {
+                        test_board.get_random_move(Some(&Piece::O));
+                        computer_player = ComputerPlayerType::Neural;
+                    }
+                }
+                winner = check_status(&test_board);
+                done = test_board.full();
+                if done || matches!(winner, Piece::O | Piece::X) {
+                    break;
+                };
+            }
+            winners.push(winner);
+        }
+        println!("");
+        println!("| Training rounds | Random win | Neural win | Draw |");
+        println!("| --------------- | ---------- | ---------- | ---- |");
+        
+        let random_wins = winners.as_slice().into_iter().filter(|p| **p == Piece::O).count();
+        let neural_wins = winners.as_slice().into_iter().filter(|p| **p == Piece::X).count();
+        let draws = winners.as_slice().into_iter().filter(|p| **p == Piece::None).count();
+        println!("| {} | {} | {} | {} |", last_rounds_number, random_wins, neural_wins, draws);
+    }
+
 }

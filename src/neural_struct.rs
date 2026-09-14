@@ -1,5 +1,3 @@
-use std::default;
-
 use rand::thread_rng;
 use rand_distr::num_traits::One;
 use rand_distr::{Normal, Distribution};
@@ -51,7 +49,7 @@ impl TicTacToeNeuralNet {
             }
         } 
         if plot {
-            let _ = plot_loss(&loss_plot, "Loss function of tree-search training");
+            let _ = plot_loss(&loss_plot, "Loss function of tree-search training", "Loss");
         }
     }
 
@@ -59,15 +57,18 @@ impl TicTacToeNeuralNet {
     /// with the winning piece as value 1 to train a neural network.
     /// Stop when neural network can play draw against tree search. 
     #[cfg_attr(not(test), allow(dead_code))] // Allow dead code for prod build because only in test currently
-    pub fn random_train(&mut self, rounds: usize, plot: bool) {
+    pub fn random_train(&mut self, rounds: usize, plot: bool, neural_net_starts: bool, 
+                        max_attempts_to_get_draw_against_tree_search: u32) {
         let back_prop_iterations:usize = 1;
-        let max_attempts_to_get_draw_against_tree_search = 10;
         for draw_attempt in 0..max_attempts_to_get_draw_against_tree_search {
+            self.gaussian_matrix();
             let mut train_board: Board;
             let mut blocker_losses: DataToPlot = DataToPlot{ data : vec![], legend : "blocker loss".to_string()};
             let mut winner_losses: DataToPlot = DataToPlot{ data : vec![], legend : "winner loss".to_string()};
             let mut neural_wins: DataToPlot = DataToPlot { data: vec![], legend: "neural wins".to_string() };
             let mut random_wins: DataToPlot = DataToPlot { data: vec![], legend: "random wins".to_string() };
+            let mut wins_in_row = 0;
+            let mut good_stats: bool = false;
             for round in 0..=rounds {
                 train_board = Board {
                     positions : [[Piece::None,Piece::None,Piece::None],
@@ -80,7 +81,13 @@ impl TicTacToeNeuralNet {
                 let mut winner : Piece; // = Piece::None;
                 let mut x_moves: Vec<[i8; 9]> = vec![[0; 9]]; // vec![[0; 9]];
                 let mut o_moves: Vec<[i8; 9]> = vec![]; // vec![];
-                let mut computer_player: ComputerPlayerType = ComputerPlayerType::Neural;
+
+                let mut computer_player = if neural_net_starts {
+                    ComputerPlayerType::Neural
+                } else {
+                    ComputerPlayerType::TreeSearch
+                };
+
                 loop {
                     match computer_player {
                         ComputerPlayerType::Neural => {
@@ -107,12 +114,17 @@ impl TicTacToeNeuralNet {
                 }
                 let winner_moves = match winner {
                     Piece::O => {
+                        wins_in_row = 0;
                         o_moves
                     }
                     Piece::X => {
+                        wins_in_row += 1;
                         x_moves
                     }
-                    Piece::None => vec![]
+                    Piece::None => {
+                        wins_in_row = 0;
+                        vec![]
+                    }
                 }; 
                 // Make array that accumulate wins for each round
                 random_wins.data.push(random_wins.data.last().unwrap_or(&0.0) + {if winner == Piece::O {1.0} else {0.0}});
@@ -147,19 +159,16 @@ impl TicTacToeNeuralNet {
                 let out = self.forward(&test_board);
                 let winner_losss: f64 = loss(&[0, 0, -1, 1, 1, 1, 0, 0, -1], &out);
                 winner_losses.data.push(winner_losss);
-                let loss_req = 0.1;
-                if winner_losss < loss_req && blocker_losss < loss_req { 
-                    println!("Winner ({:.2}) and blocker loss ({:.2}) < {:.1}, 
+                let loss_req = 0.21;
+                if (winner_losss + blocker_losss) < loss_req && (round >= 5) && wins_in_row >= 10 { 
+                    println!("    -> Breaking early: winner ({:.2}) and blocker loss ({:.2}) < {:.2}, neural_wins_in_row : {}
                             exiting loop at {} rounds", winner_losss, blocker_losss, 
-                            loss_req, round);
+                            loss_req, wins_in_row, round);
+                    good_stats = true;
                     break; 
                 }
 
             } 
-            if plot {
-                let _ = plot_loss(&[blocker_losses, winner_losses], "Random_neural training loss");
-                let _ = plot_loss(&[random_wins, neural_wins], "Wins during training");
-            }
             let mut test_board = Board {
                 positions : [
                     [Piece::None,Piece::None,Piece::None],
@@ -170,7 +179,12 @@ impl TicTacToeNeuralNet {
             };
             let mut done;
             let mut winner;
-            let mut computer_player: ComputerPlayerType = ComputerPlayerType::TreeSearch;
+            let mut computer_player = if neural_net_starts {
+                    ComputerPlayerType::Neural
+                } else {
+                    ComputerPlayerType::TreeSearch
+                };
+
             loop {
                 match computer_player {
                     ComputerPlayerType::Neural => {
@@ -191,15 +205,25 @@ impl TicTacToeNeuralNet {
             }
             match winner {
                 Piece::None => {
-                    println!("Draw in {} attempts", draw_attempt);
-                    return()
+                    println!("    * Draw in {} attempts", draw_attempt + 1);
+                    if good_stats { 
+                        if plot {
+                            let _ = plot_loss(&[blocker_losses, winner_losses], "Random_neural training loss", "Loss");
+                            let _ = plot_loss(&[random_wins, neural_wins], "Wins during training", "Wins");
+                        }        
+                        return 
+                    };
                 }
                 _ => {
-                    println!("Winner {} in attempt {}", winner.get_piece(), draw_attempt);
+                    println!("    * Winner {} in attempt {}", winner.get_piece(), draw_attempt + 1);
                 }
             }
+            if plot && draw_attempt == (max_attempts_to_get_draw_against_tree_search -1) {
+                let _ = plot_loss(&[blocker_losses, winner_losses], "Random_neural training loss", "Loss");
+                let _ = plot_loss(&[random_wins, neural_wins], "Wins during training", "Wins");
+            }        
         }
-        println!("Failed to traing to play draw against tree search in {} attempts",
+        println!("    * Failed to train to play draw against tree search in {} attempts",
             max_attempts_to_get_draw_against_tree_search);
     }
 

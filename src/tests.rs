@@ -1,9 +1,7 @@
 #[cfg(test)]
 use crate::neural_struct::TicTacToeNeuralNet;
 #[cfg(test)]
-use crate::neural_utils::diff_vectors_and_ret_largest_index;
-#[cfg(test)]
-use crate::neural_utils::{loss};
+use crate::neural_utils::{loss, neural_struct_random_train, diff_vectors_and_ret_largest_index};
 #[cfg(test)]
 use approx::assert_abs_diff_eq;
 
@@ -914,7 +912,7 @@ fn neural_struct_tree_search_train() {
 /// * "hidden-layer" will activate extra hidden layer
 /// * "play-random-oponent" will check neural network trained with max rounds against random oponent five times
 #[test]
-fn neural_struct_random_train() {
+fn neural_struct_random_train_neural_starts() {
     use std::env;
     let args: Vec<String> = env::args().collect();
     let mut extra_hidden_layer = false;
@@ -927,120 +925,9 @@ fn neural_struct_random_train() {
         println!("Activate check of neural network with play against random oponent five times");
         play_random_oponent = true;
     }
-    // With hidden layer seems to improve from round 30 and upwards
-    let max_rounds:usize = if extra_hidden_layer { 30 } else { 30 };
-    let step = 1;
-    #[allow(unused_mut)]
-    let mut winners : Vec<Vec<Piece>> = vec![Vec::new();max_rounds as usize]; 
-    let mut neural_play: TicTacToeNeuralNet = TicTacToeNeuralNet::default();
-    for rounds in (0..max_rounds).step_by(step) {
-        for play in 0..5 {
-            neural_play = TicTacToeNeuralNet::random_init(Piece::X, Some(extra_hidden_layer));
-            let mut plot = false; 
-            if rounds > (max_rounds-step-1) && play == 0 {
-                plot = true;
-            }
-            neural_play.random_train(rounds, plot);
-            //return;
-            #[allow(unreachable_code)]
-            let mut test_board = Board {
-                positions : [
-                    [Piece::None,Piece::None,Piece::None],
-                    [Piece::None,Piece::None,Piece::None],
-                    [Piece::None,Piece::None,Piece::None]],
-                score : 0,
-                computer_piece : Piece::O,
-            };
-            let mut done;
-            let mut winner;
-
-            // Why is it so much slower if tree search(random start)??
-            // Why does unlearn every other round with extra hidden layer
-            let mut computer_player: ComputerPlayerType = ComputerPlayerType::Neural;
-
-            loop {
-                match computer_player {
-                    ComputerPlayerType::Neural => {
-                        neural_play.forward_wrapped(&mut test_board);
-                        computer_player = ComputerPlayerType::TreeSearch;
-                    },
-                    ComputerPlayerType::TreeSearch => {
-                        get_next_move(&mut test_board, false);
-                        computer_player = ComputerPlayerType::Neural;
-                    }
-                }
-                winner = check_status(&test_board);
-                done = test_board.full();
-                if done || matches!(winner, Piece::O | Piece::X) {
-                    break;
-                };
-            }
-            winners[rounds as usize].push(winner);
-        }
-    }
-    println!("| Training rounds | Tree search win | Neural win | Draw |");
-    println!("| --------------- | --------------- | ---------- | ---- |");
-    
-    for rounds in (0..max_rounds).step_by(step) {
-        let tree_search_wins = winners[rounds as usize].as_slice().into_iter().filter(|p| **p == Piece::O).count();
-        let neural_wins = winners[rounds as usize].as_slice().into_iter().filter(|p| **p == Piece::X).count();
-        let draws = winners[rounds as usize].as_slice().into_iter().filter(|p| **p == Piece::None).count();
-        println!("| {} | {} | {} | {} |", rounds+1, tree_search_wins, neural_wins, draws);
-    }
-    let wins_with_max_rounds_of_training = winners
-        .last()
-        .map(|v| v.as_slice().iter().filter(|p| **p == Piece::X).count())
-        .unwrap_or(0);
-    println!("Wins with max rounds of training: {}", wins_with_max_rounds_of_training);
-    assert!(wins_with_max_rounds_of_training == 0); // No winners
-
-    //
-    // Play random oponent with final trained network
-    //
-    if play_random_oponent {
-        let mut winners : Vec<Piece> = Vec::new(); 
-        for _play in 0..5 {
-            let mut test_board = Board {
-                positions : [
-                    [Piece::None,Piece::None,Piece::None],
-                    [Piece::None,Piece::None,Piece::None],
-                    [Piece::None,Piece::None,Piece::None]],
-                score : 0,
-                computer_piece : Piece::O,
-            };
-            let mut done;
-            let mut winner;
-
-            let mut computer_player: ComputerPlayerType = ComputerPlayerType::Neural;
-
-            loop {
-                match computer_player {
-                    ComputerPlayerType::Neural => {
-                        neural_play.forward_wrapped(&mut test_board);
-                        computer_player = ComputerPlayerType::TreeSearch;
-                    },
-                    ComputerPlayerType::TreeSearch => {
-                        test_board.get_random_move(Some(&Piece::O));
-                        computer_player = ComputerPlayerType::Neural;
-                    }
-                }
-                winner = check_status(&test_board);
-                done = test_board.full();
-                if done || matches!(winner, Piece::O | Piece::X) {
-                    break;
-                };
-            }
-            winners.push(winner);
-        }
-        println!("");
-        println!("| Training rounds | Random win | Neural win | Draw |");
-        println!("| --------------- | ---------- | ---------- | ---- |");
-        
-        let random_wins = winners.as_slice().into_iter().filter(|p| **p == Piece::O).count();
-        let neural_wins = winners.as_slice().into_iter().filter(|p| **p == Piece::X).count();
-        let draws = winners.as_slice().into_iter().filter(|p| **p == Piece::None).count();
-        println!("| {} | {} | {} | {} |", 10, random_wins, neural_wins, draws);
-    }
+    let max_rounds:u32 = if extra_hidden_layer { 500 } else { 500 };
+    neural_struct_random_train(max_rounds, max_rounds, 5, 5, extra_hidden_layer, play_random_oponent);
+    //assert!(wins_with_max_rounds_of_training == 0); // No winners
 
 }
 
@@ -1161,7 +1048,7 @@ fn neural_struct_back_prop_test() {
             println!("Neural move with extra hidden guess for input2: {:.4?} (should be 4) ", neural_move_guess2_hidden);
         }
         if plot && iteration == iterations {
-            let _ = plot_loss(&[losses.clone(), hidden_losses.clone(), losses2.clone(), hidden_losses2.clone()], "Loss function for back prop test");
+            let _ = plot_loss(&[losses.clone(), hidden_losses.clone(), losses2.clone(), hidden_losses2.clone()], "Loss function for back prop test", "Loss");
         }
 
     }
